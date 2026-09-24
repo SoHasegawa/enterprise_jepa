@@ -1,0 +1,15 @@
+[LLM-WM (state output) / vllm] loading world model...
+[LLM-WM (state output) / vllm] horizon= 1 0.108+-0.003s/call (mean of 5) 107.7ms/trajectory 107.70ms/transition 46 predicted tokens/call
+[LLM-WM (state output) / vllm] horizon= 2 0.208+-0.005s/call (mean of 5) 208.4ms/trajectory 104.20ms/transition 92 predicted tokens/call
+[LLM-WM (state output) / vllm] horizon= 3 0.304+-0.003s/call (mean of 5) 304.4ms/trajectory 101.47ms/transition 138 predicted tokens/call
+Wrote out/wm_latency/wm_latency_llm_state_vllm_c1.json
+[LLM-WM (state output) / vllm] loading world model...
+[LLM-WM (state output) / vllm] horizon= 1 0.122+-0.021s/call (mean of 5) 60.9ms/trajectory 60.94ms/transition 94 predicted tokens/call
+[LLM-WM (state output) / vllm] horizon= 2 0.227+-0.004s/call (mean of 5) 113.7ms/trajectory 56.86ms/transition 188 predicted tokens/call
+[LLM-WM (state output) / vllm] horizon= 3 0.341+-0.004s/call (mean of 5) 170.5ms/trajectory 56.85ms/transition 282 predicted tokens/call
+Wrote out/wm_latency/wm_latency_llm_state_vllm_c2.json
+[LLM-WM (state output) / vllm] loading world model...
+[LLM-WM (state output) / vllm] horizon= 1 0.135+-0.010s/call (mean of 5) 33.7ms/trajectory 33.74ms/transition 188 predicted tokens/call
+[LLM-WM (state output) / vllm] horizon= 2 0.270+-0.003s/call (mean of 5) 67.4ms/trajectory 33.71ms/transition 376 predicted tokens/call
+[LLM-WM (state output) / vllm] horizon= 3 0.408+-0.008s/call (mean of 5) 102.0ms/trajectory 33.99ms/transition 564 predicted tokens/call
+Wrote out/wm_latency/wm_latency_llm_state_vllm_c4.json

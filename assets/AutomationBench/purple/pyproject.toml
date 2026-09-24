@@ -1,0 +1,40 @@
+[project]
+name = "ejepa-bench-automationbench-purple"
+version = "0.1.0"
+description = "Purple agent runtime for the AutomationBench benchmark"
+requires-python = ">=3.11"
+dependencies = [
+    "a2a-sdk>=0.3.5,<0.4.0",
+    "httpx>=0.27,<1.0",
+    "pydantic>=2.11,<3.0",
+    "sse-starlette>=2.1,<3.0",
+    "starlette>=0.47,<1.0",
+    "uvicorn>=0.35,<1.0",
+]
+
+# The `mcp_react` executor drives the policy LLM over an OpenAI-compatible
+# endpoint and executes upstream AutomationBench tools against its own
+# `WorldState`, so upstream's own runtime deps must be importable here.
+# Install with `uv sync --project assets/AutomationBench/purple --extra mcp_react`.
+[project.optional-dependencies]
+mcp_react = [
+    "openai>=1.0,<2.0",
+    "rapidfuzz>=3.0,<4.0",
+    "python-dateutil>=2.9,<3.0",
+]
+
+# JEPA world model for `wm_react.py` (WM_STRATEGY=beam_plan|itp_i|... with
+# WM_EWM_JEPA_CHECKPOINT). ejepa_wm.backends._ewm_jepa is imported lazily, so
+# these heavy deps stay in their own extra:
+# `uv sync --project assets/AutomationBench/purple --extra mcp_react --extra jepa`.
+# Versions mirror assets/EnterpriseOps-Gym/purple/pyproject.toml.
+jepa = [
+    "torch>=2.8.0",
+    "transformers>=4.56.2",
+    "accelerate>=1.13.0",
+    "sentencepiece>=0.2.1",
+    "protobuf>=3.20.2",
+]
+
+[tool.uv]
+package = false

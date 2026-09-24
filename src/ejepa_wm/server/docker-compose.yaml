@@ -1,0 +1,25 @@
+services:
+  enterpriseops-ewm-predict:
+    build:
+      context: ../../..        # repo root (so src/ejepa_wm/ is in the build context)
+      dockerfile: src/ejepa_wm/server/Dockerfile
+    ports:
+      - "12072:12072"
+    environment:
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: "12072"
+      WM_STATE: binary_error
+      # World-model backend. For a vLLM service reachable from the container, set the
+      # full URL with WM_VLLM_BASE_URL instead of the port.
+      EWM_WORLD_MODEL_METHOD: vllm/gymops_world_model
+      EWM_VLLM_SERVER_PORT: "9000"
+      # WM_VLLM_BASE_URL: http://host.docker.internal:9000/v1
+      #
+      # Local HuggingFace checkpoint backend instead (requires torch+transformers in
+      # the image and the checkpoint mounted below):
+      # EWM_WORLD_MODEL_PATH: /models/world_model_checkpoint
+    # volumes:
+    #   - /path/to/world_model_checkpoint:/models/world_model_checkpoint:ro
+    # extra_hosts lets the container reach a vLLM server on the host:
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"

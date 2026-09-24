@@ -1,0 +1,44 @@
+[project]
+name = "ejepa-bench-terminal-bench-2-purple"
+version = "0.1.0"
+description = "Purple agent runtime for the Terminal-Bench 2.0 benchmark"
+requires-python = ">=3.12"
+dependencies = [
+    "a2a-sdk[http-server]>=0.3.20,<0.4.0",
+    "httpx>=0.27,<1.0",
+    "pydantic>=2.11,<3.0",
+    "sse-starlette>=2.1,<3.0",
+    "starlette>=0.47,<1.0",
+    "uvicorn>=0.35,<1.0",
+]
+
+[project.optional-dependencies]
+llm_shell = [
+    "httpx>=0.27,<1.0",
+    "openai>=1.55,<2.0",
+]
+terminus_2 = [
+    "litellm>=1.55,<2.0",
+]
+# mcp_react reuses the llm_shell turn-server, so it needs the same LLM deps.
+mcp_react = [
+    "httpx>=0.27,<1.0",
+    "openai>=1.55,<2.0",
+]
+# JEPA world model for mcp_react (WM_STRATEGY=imagined + WM_EWM_JEPA_CHECKPOINT /
+# --wm-ewm-jepa-checkpoint). Only that path needs a local torch model —
+# ejepa_wm.backends._ewm_jepa is imported lazily — so these heavy deps live in their
+# own extra; compose with mcp_react, e.g.
+# `uv sync --project assets/Terminal-Bench-2.0/purple --extra mcp_react --extra jepa`.
+# Versions mirror the upstream EWM repo the JEPA code was ported from.
+jepa = [
+    "torch>=2.8.0",
+    "transformers>=4.56.2",
+    "accelerate>=1.13.0",
+    "sentencepiece>=0.2.1",
+    "protobuf>=3.20.2",
+]
+
+[tool.uv]
+package = false
+exclude-newer = "7 days ago"

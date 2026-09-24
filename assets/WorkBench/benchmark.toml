@@ -1,0 +1,30 @@
+name = "WorkBench"
+version = "0.1.0"
+default_executor = "mcp_react"
+
+[benchmark_metadata]
+targets = [
+  "sample",
+  "email",
+  "calendar",
+  "analytics",
+  "project_management",
+  "customer_relationship_manager",
+  "multi_domain",
+  "all",
+  "longest_100_balanced",
+]
+
+[config]
+target = "all"
+
+[green_agent]
+entrypoint = "green/workbench_green_agent.py"
+host = "127.0.0.1"
+port = 0
+
+[[participants]]
+role = "agent"
+entrypoint = "purple/workbench_purple_agent.py"
+host = "127.0.0.1"
+port = 0

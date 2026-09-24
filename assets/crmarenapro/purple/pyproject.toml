@@ -1,0 +1,32 @@
+[project]
+name = "ejepa-bench-crmarenapro-purple"
+version = "1.0.0"
+description = "Purple agent runtime for the CRMArenaPro benchmark"
+requires-python = ">=3.11"
+dependencies = [
+    "a2a-sdk[http-server]>=0.3.20,<0.4.0",
+    "anthropic>=0.100,<1.0",
+    "httpx>=0.27,<1.0",
+    "openai>=1.0,<3.0",
+    "pip>=24",
+    "python-dotenv>=1.0,<2.0",
+    "uvicorn>=0.35,<1.0",
+]
+
+# JEPA world model for the `mcp_react` executor (WM_STRATEGY=imagined +
+# WM_EWM_JEPA_CHECKPOINT / --wm-ewm-jepa-checkpoint). Only that path needs a local
+# torch model — ejepa_wm.backends._ewm_jepa is imported lazily — so these heavy deps
+# live in their own extra: `uv sync --project assets/crmarenapro/purple --extra jepa`.
+# (openai/anthropic providers are already base deps.) Versions mirror the upstream
+# EWM repo the JEPA code was ported from.
+[project.optional-dependencies]
+jepa = [
+    "torch>=2.8.0",
+    "transformers>=4.56.2",
+    "accelerate>=1.13.0",
+    "sentencepiece>=0.2.1",
+    "protobuf>=3.20.2",
+]
+
+[tool.uv]
+package = false

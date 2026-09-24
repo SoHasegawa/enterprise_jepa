@@ -1,0 +1,76 @@
+{
+  "candidate_mode": "distinct",
+  "candidates": 32,
+  "created_at_utc": "2026-09-18T23:39:48Z",
+  "environment": {
+    "cuda_device": "NVIDIA H200 NVL",
+    "fast_kernels": {
+      "causal_conv1d": false,
+      "fla": false,
+      "flash_attn": false
+    },
+    "torch_version": "2.14.0+cu130",
+    "transformers_version": "5.17.0"
+  },
+  "history_steps": 4,
+  "horizons": [
+    3,
+    10
+  ],
+  "measurements": [
+    {
+      "backend": "transformers",
+      "candidate_mode": "distinct",
+      "candidates": 32,
+      "horizon": 3,
+      "predicted_tokens_per_call": null,
+      "predicted_tokens_per_transition": null,
+      "prompt_tokens_per_call": null,
+      "repeats": 3,
+      "seconds_per_call": 0.09536692469070356,
+      "seconds_per_call_max": 0.15014208666980267,
+      "seconds_per_call_mean": 0.09536692469070356,
+      "seconds_per_call_median": 0.0682031512260437,
+      "seconds_per_call_min": 0.06775553617626429,
+      "seconds_per_call_stdev": 0.04743720973229355,
+      "seconds_per_candidate_trajectory": 0.002980216396584486,
+      "seconds_per_candidate_trajectory_median": 0.0021313484758138657,
+      "seconds_per_transition": 0.000993405465528162,
+      "seconds_per_transition_median": 0.0007104494919379553,
+      "state_cache": "cold",
+      "statistic": "mean",
+      "token_source": null,
+      "transitions": 96,
+      "world_model": "Enterprise-JEPA"
+    },
+    {
+      "backend": "transformers",
+      "candidate_mode": "distinct",
+      "candidates": 32,
+      "horizon": 10,
+      "predicted_tokens_per_call": null,
+      "predicted_tokens_per_transition": null,
+      "prompt_tokens_per_call": null,
+      "repeats": 3,
+      "seconds_per_call": 0.11292016475150983,
+      "seconds_per_call_max": 0.11862731073051691,
+      "seconds_per_call_mean": 0.11292016475150983,
+      "seconds_per_call_median": 0.11032738350331783,
+      "seconds_per_call_min": 0.10980580002069473,
+      "seconds_per_call_stdev": 0.004949408929519652,
+      "seconds_per_candidate_trajectory": 0.003528755148484682,
+      "seconds_per_candidate_trajectory_median": 0.0034477307344786823,
+      "seconds_per_transition": 0.0003528755148484682,
+      "seconds_per_transition_median": 0.0003447730734478682,
+      "state_cache": "cold",
+      "statistic": "mean",
+      "token_source": null,
+      "transitions": 320,
+      "world_model": "Enterprise-JEPA"
+    }
+  ],
+  "repeats": 3,
+  "schema_version": "1.0",
+  "state_cache": "cold",
+  "statistic": "mean"
+}

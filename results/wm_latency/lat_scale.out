@@ -1,0 +1,8 @@
+[lat] 23:38:32Z JEPA compiled, c=128
+[lat] 23:39:48Z JEPA eager, c=32
+[lat] 23:39:59Z JEPA eager, c=512
+[lat] 23:40:16Z waiting for the ablation lane to release GPU 5...
+[lat] 23:52:59Z LLM-WM (vLLM :9015), c=8
+[lat] 23:53:20Z LLM-WM (vLLM :9015), c=32
+[lat] 23:54:24Z LLM-WM (vLLM :9015), c=128
+[lat] done 23:58:07Z

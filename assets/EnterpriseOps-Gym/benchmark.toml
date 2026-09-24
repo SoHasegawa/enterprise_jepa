@@ -1,0 +1,28 @@
+name = "EnterpriseOps-Gym"
+version = "0.1.0"
+default_executor = "mcp_react"
+
+[config]
+target = "sample"
+# Hugging Face corpus example (replace the target above and enable the keys below to use it):
+# target = "hf_dataset"
+# mode = "oracle"                       # oracle / plus_5_tools / plus_10_tools / plus_15_tools
+# domains = ["calendar", "teams"]        # one or more of: calendar / csm / drive / email / hr / hybrid / itsm / teams
+# max_tasks_per_domain = 3
+# Fixed 80-task held-out split (ewm-enterprisearena opsgym); loads oracle rows from HF by task ID:
+# target = "opsgym_80_test"
+# One-task-per-domain fixed split smoke target:
+# target = "opsgym_domain_smoke"
+# orchestrator = "react"                # react / planner_react / decomposing
+# max_iterations = 50
+
+[green_agent]
+entrypoint = "green/enterpriseops_green_agent.py"
+host = "127.0.0.1"
+port = 0
+
+[[participants]]
+role = "agent"
+entrypoint = "purple/enterpriseops_purple_agent.py"
+host = "127.0.0.1"
+port = 0

@@ -1,0 +1,31 @@
+sample = [
+  "sample_0000",
+  "sample_0001",
+]
+
+# longest_100_balanced: 100 longest multi-step tasks, balanced across the six
+# dataset targets. Tasks are ranked by outcome length within each target and
+# selected round-robin; ties use source CSV row order. Distribution: 15 email
+# tasks and 17 tasks from each other target. Every outcome has at least 2 steps.
+longest_100_balanced = [
+  "email_0015", "calendar_0089", "analytics_0020", "project_management_0030", "customer_relationship_manager_0054",
+  "multi_domain_0203", "email_0012", "calendar_0072", "analytics_0021", "project_management_0034",
+  "customer_relationship_manager_0072", "multi_domain_0204", "email_0019", "calendar_0084", "analytics_0022",
+  "project_management_0036", "customer_relationship_manager_0075", "multi_domain_0144", "email_0017", "calendar_0086",
+  "analytics_0023", "project_management_0038", "customer_relationship_manager_0044", "multi_domain_0145", "email_0041",
+  "calendar_0076", "analytics_0024", "project_management_0039", "customer_relationship_manager_0046", "multi_domain_0146",
+  "email_0070", "calendar_0080", "analytics_0025", "project_management_0024", "customer_relationship_manager_0055",
+  "multi_domain_0185", "email_0071", "calendar_0087", "analytics_0026", "project_management_0029",
+  "customer_relationship_manager_0057", "multi_domain_0188", "email_0072", "calendar_0088", "analytics_0027",
+  "project_management_0031", "customer_relationship_manager_0058", "multi_domain_0189", "email_0073", "calendar_0098",
+  "analytics_0028", "project_management_0047", "customer_relationship_manager_0078", "multi_domain_0142", "email_0074",
+  "calendar_0070", "analytics_0029", "project_management_0055", "customer_relationship_manager_0040", "multi_domain_0147",
+  "email_0075", "calendar_0071", "analytics_0040", "project_management_0061", "customer_relationship_manager_0043",
+  "multi_domain_0184", "email_0076", "calendar_0074", "analytics_0041", "project_management_0066",
+  "customer_relationship_manager_0047", "multi_domain_0186", "email_0077", "calendar_0075", "analytics_0042",
+  "project_management_0068", "customer_relationship_manager_0048", "multi_domain_0206", "email_0078", "calendar_0077",
+  "analytics_0043", "project_management_0023", "customer_relationship_manager_0049", "multi_domain_0148", "email_0079",
+  "calendar_0081", "analytics_0044", "project_management_0025", "customer_relationship_manager_0051", "multi_domain_0181",
+  "calendar_0085", "analytics_0045", "project_management_0026", "customer_relationship_manager_0053", "multi_domain_0187",
+  "calendar_0096", "analytics_0046", "project_management_0032", "customer_relationship_manager_0069", "multi_domain_0202",
+]

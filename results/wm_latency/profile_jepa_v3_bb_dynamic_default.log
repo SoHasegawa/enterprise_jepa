@@ -1,0 +1,25 @@
+Loading weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading weights: 100%|██████████| 310/310 [00:00<00:00, 5751.75it/s]
+
+--- runtime facts ---
+  torch 2.14.0+cu130  cuda 13.0  device NVIDIA H200 NVL
+  module model                        TextLeWorldModel                 params=   755.9M dtypes=['torch.bfloat16', 'torch.float32'] attn=None compiled=False
+  compiled ['backbone', 'encoder_projector', 'predictor', 'success_head', 'terminal_head', 'memory_projection', 'canonical_event_trunk', 'canonical_event_heads'] with mode=default
+
+--- per-call breakdown: horizon=3 candidates=8 dtype=auto compile=True ---
+  total    213.9 ms/call  (stdev 2.5 ms, n=10)
+  method (inclusive)                         ms/call   share  calls/call
+  score_action_plans_canonical_event          213.80   99.9%         1.0
+  encode_latents_batched                       31.28   14.6%         5.0
+  _encode_frame_history                        26.74   12.5%         1.0
+  _encode_latent_text                          21.03    9.8%         2.0
+  model.backbone                               16.72    7.8%         2.0
+  model.predictor                              10.67    5.0%         3.0
+  model.terminal_head                           7.55    3.5%         3.0
+  model.canonical_event_trunk                   7.21    3.4%         3.0
+  _encode_batch                                 4.85    2.3%         1.0
+  model.encoder_projector                       4.71    2.2%         2.0
+  _encode                                       4.39    2.1%         1.0
+  _current_state_text                           0.08    0.0%         1.0
+  _frame_conditioning_batch                     0.05    0.0%         4.0
+  model.backbone: 602 input tokens/call over 2.0 passes (301 tokens/pass)
+  (inclusive: nested methods are counted inside their callers; the top-level entry score_action_plans_canonical_event equals the total)

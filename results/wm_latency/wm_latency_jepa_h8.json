@@ -1,0 +1,50 @@
+{
+  "candidate_mode": "distinct",
+  "candidates": 8,
+  "created_at_utc": "2026-09-17T22:11:37Z",
+  "environment": {
+    "cuda_device": "NVIDIA H200 NVL",
+    "fast_kernels": {
+      "causal_conv1d": false,
+      "fla": false,
+      "flash_attn": false
+    },
+    "torch_version": "2.14.0+cu130",
+    "transformers_version": "5.17.0"
+  },
+  "history_steps": 4,
+  "horizons": [
+    8
+  ],
+  "measurements": [
+    {
+      "backend": "transformers",
+      "candidate_mode": "distinct",
+      "candidates": 8,
+      "horizon": 8,
+      "predicted_tokens_per_call": null,
+      "predicted_tokens_per_transition": null,
+      "prompt_tokens_per_call": null,
+      "repeats": 5,
+      "seconds_per_call": 0.09455380551517009,
+      "seconds_per_call_max": 0.15537217631936073,
+      "seconds_per_call_mean": 0.09455380551517009,
+      "seconds_per_call_median": 0.07938003074377775,
+      "seconds_per_call_min": 0.07928618136793375,
+      "seconds_per_call_stdev": 0.03399856033107346,
+      "seconds_per_candidate_trajectory": 0.011819225689396261,
+      "seconds_per_candidate_trajectory_median": 0.009922503842972219,
+      "seconds_per_transition": 0.0014774032111745327,
+      "seconds_per_transition_median": 0.0012403129803715274,
+      "state_cache": "cold",
+      "statistic": "mean",
+      "token_source": null,
+      "transitions": 64,
+      "world_model": "Enterprise-JEPA"
+    }
+  ],
+  "repeats": 5,
+  "schema_version": "1.0",
+  "state_cache": "cold",
+  "statistic": "mean"
+}

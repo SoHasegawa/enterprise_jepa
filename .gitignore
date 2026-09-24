@@ -1,0 +1,36 @@
+.uv-cache/
+**/.venv*
+.pytest_cache/
+.ruff_cache/
+.remote-inference-launcher/
+__pycache__/
+*.py[cod]
+
+tmp/
+work/
+out/
+build/
+
+slurm-*.out
+slurm-*.err
+
+.env
+.env.local
+.env.*.local
+
+# Raw run output. `results/analysis`, `results/figures` and `results/wm_latency`
+# are checked in (the paper's derived numbers); everything a fresh run produces
+# is not.
+results/wm_harness_summaries/
+results/bench_repeat_summaries/
+results/logs/
+
+# Fetched by scripts/fetch_assets.sh, not tracked (see docs/setup.md).
+assets/EnterpriseOps-Gym/models/gymops_world_model/adapter_model.safetensors
+assets/EnterpriseOps-Gym/models/gymops_world_model/tokenizer.json
+assets/crmarenapro/purple-executors/baseline_crm_agent/data/*.db
+training/trajectories/
+training/data/*.jsonl
+training/sessions/
+upstreams/
+checkpoints/

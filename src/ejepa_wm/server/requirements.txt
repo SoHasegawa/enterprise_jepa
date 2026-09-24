@@ -1,0 +1,13 @@
+# EWM predict MCP server dependencies.
+# The server only needs fastmcp + uvicorn to start and serve /mcp. The EWM engine
+# (ejepa_wm.backends._ewm_runtime / _ewm_finetuning) is stdlib-only; the vLLM backend
+# reaches the world-model server over the network with urllib.
+fastmcp==2.6.1
+uvicorn>=0.34,<1.0
+pydantic>=2.11.7,<3.0.0
+# Only needed when the world model is a local HuggingFace checkpoint
+# (EWM_WORLD_MODEL_PATH / EWM_WORLD_MODEL_METHOD=transformers); NOT required for the
+# vllm/<model> backend:
+# torch
+# transformers
+# peft        # only for LoRA-adapter checkpoints

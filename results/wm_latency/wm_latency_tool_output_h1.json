@@ -1,0 +1,36 @@
+{
+  "schema_version": "1.0",
+  "candidate_mode": "distinct",
+  "candidates": 8,
+  "history_steps": 4,
+  "horizons": [1],
+  "repeats": 5,
+  "state_cache": "cold",
+  "statistic": "mean",
+  "source": "Transcribed from the operator's sweep (PID 4190888, killed before horizon 2): Qwen/Qwen-AgentWorld-35B-A3B, in-process transformers, CUDA_VISIBLE_DEVICES=5, --llm-max-new-tokens 1024. Only the reported summary values are known; median/min/max were not captured.",
+  "environment": {
+    "note": "recorded by the operator's run, not re-measured here",
+    "cuda_device": "NVIDIA H200 NVL"
+  },
+  "measurements": [
+    {
+      "world_model": "LLM-WM (tool output)",
+      "backend": "transformers",
+      "state_cache": "cold",
+      "candidate_mode": "distinct",
+      "statistic": "mean",
+      "horizon": 1,
+      "candidates": 8,
+      "transitions": 8,
+      "repeats": 5,
+      "seconds_per_call": 942.668,
+      "seconds_per_call_mean": 942.668,
+      "seconds_per_call_median": null,
+      "seconds_per_call_stdev": 0.91,
+      "seconds_per_candidate_trajectory": 117.8335,
+      "seconds_per_transition": 117.8335,
+      "predicted_tokens_per_call": 17408.0,
+      "predicted_tokens_per_transition": 2176.0
+    }
+  ]
+}

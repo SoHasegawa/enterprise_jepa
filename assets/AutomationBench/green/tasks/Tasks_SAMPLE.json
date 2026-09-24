@@ -1,0 +1,85 @@
+{
+  "_comment": "Bundled smoke tasks for the `sample` target. Shape mirrors an upstream AutomationBench row (prompt + info.initial_state + info.assertions + info.zapier_tools) so the same Green/Purple code path runs offline. Assertion types are the upstream ones; the sample uses only the generic `field_equals` / `collection_record_exists` forms, which the bundled fallback evaluator can score without the upstream package.",
+  "tasks": [
+    {
+      "id": "sample_sf_contact_phone_update",
+      "prompt": "A customer replied to your support email with a new phone number.\n\nFrom: ada.lovelace@example.com\nSubject: Re: Your recent ticket\n\n\"Please update my phone number to +1-555-0101 - the old one is disconnected.\"\n\nUpdate the matching Salesforce contact so the phone number on record is correct.",
+      "info": {
+        "task_name": "sample_sf_contact_phone_update",
+        "domain": "sample",
+        "zapier_tools": ["salesforce_contact_search", "salesforce_contact_update"],
+        "initial_state": {
+          "salesforce": {
+            "contacts": [
+              {
+                "id": "003001",
+                "FirstName": "Ada",
+                "LastName": "Lovelace",
+                "Email": "ada.lovelace@example.com",
+                "Phone": "+1-555-9999"
+              },
+              {
+                "id": "003002",
+                "FirstName": "Grace",
+                "LastName": "Hopper",
+                "Email": "grace.hopper@example.com",
+                "Phone": "+1-555-0102"
+              }
+            ]
+          }
+        },
+        "assertions": [
+          {
+            "type": "field_equals",
+            "params": {
+              "app": "salesforce",
+              "collection": "contacts",
+              "record_id": "003001",
+              "field": "Phone",
+              "value": "+1-555-0101"
+            }
+          },
+          {
+            "type": "field_equals",
+            "params": {
+              "app": "salesforce",
+              "collection": "contacts",
+              "record_id": "003002",
+              "field": "Phone",
+              "value": "+1-555-0102"
+            }
+          }
+        ]
+      }
+    },
+    {
+      "id": "sample_slack_digest_post",
+      "prompt": "Two support tickets breached their SLA overnight:\n\n- TCK-4102 (Acme Corp, priority high)\n- TCK-4117 (Globex, priority high)\n\nPost one message to the #support-escalations Slack channel listing the breached tickets so the on-call lead sees them.",
+      "info": {
+        "task_name": "sample_slack_digest_post",
+        "domain": "sample",
+        "zapier_tools": ["slack_channel_search", "slack_message_create"],
+        "initial_state": {
+          "slack": {
+            "channels": [
+              {"id": "C100", "name": "support-escalations"},
+              {"id": "C101", "name": "general"}
+            ],
+            "messages": []
+          }
+        },
+        "assertions": [
+          {
+            "type": "collection_record_exists",
+            "params": {
+              "app": "slack",
+              "collection": "messages",
+              "match": {"channel": "C100"},
+              "contains": {"text": ["TCK-4102", "TCK-4117"]}
+            }
+          }
+        ]
+      }
+    }
+  ]
+}

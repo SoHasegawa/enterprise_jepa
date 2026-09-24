@@ -1,0 +1,3 @@
+[LLM-WM (tool output) / vllm] loading world model...
+[LLM-WM (tool output) / vllm] horizon= 1 21.815+-2.422s/call (mean of 3) 2726.9ms/trajectory 2726.90ms/transition
+Wrote out/wm_latency/wm_latency_tool_output_vllm_h1.json

@@ -1,0 +1,113 @@
+[project]
+name = "enterprise-jepa"
+version = "1.0.0"
+description = "Enterprise-JEPA: a latent-dynamics world model for enterprise agents, with the harnesses and benchmark adapters used in the paper"
+requires-python = ">=3.11"
+dependencies = [
+    "a2a-sdk>=0.3.5,<0.4.0",
+    "httpx>=0.27,<1.0",
+    "openai>=1.30",
+    "pydantic>=2.11,<3.0",
+    "python-dotenv>=1.0,<2.0",
+    "remote-inference-launcher==0.3.0",
+    "rich>=13,<15",
+    "typer>=0.12,<1.0",
+    "uvicorn>=0.30,<1.0",
+]
+
+[project.scripts]
+ejepa = "ejepa_cli.cli:main"
+
+[project.optional-dependencies]
+# The JEPA world model itself. Installed separately because the evaluation
+# harness runs fine against the LLM world models without a GPU stack.
+jepa = [
+    "torch>=2.4",
+    "transformers>=4.44",
+]
+# Figure regeneration (scripts/plot_*.py).
+figures = [
+    "matplotlib>=3.8",
+]
+
+[dependency-groups]
+dev = [
+    "pytest>=8.0,<9.0",
+    "pytest-cov>=7.0,<8.0",
+    "ruff>=0.11,<1.0",
+]
+
+[tool.uv.sources]
+remote-inference-launcher = { workspace = true }
+
+[tool.uv.workspace]
+members = ["packages/remote-inference-launcher"]
+
+[tool.ruff]
+target-version = "py311"
+line-length = 100
+include = [
+    "pyproject.toml",
+    "src/**/*.py",
+    "tests/**/*.py",
+    "scripts/**/*.py",
+    "packages/remote-inference-launcher/src/**/*.py",
+    "packages/remote-inference-launcher/tests/**/*.py",
+]
+src = ["src", "tests", "scripts", "packages/remote-inference-launcher/src"]
+extend-exclude = [
+    "assets",
+    # Vendored EWM training snapshot; kept byte-faithful to the upstream repo.
+    "training",
+    "src/ejepa_wm/backends/_ewm_finetuning.py",
+    "src/ejepa_wm/backends/_ewm_runtime.py",
+    "src/ejepa_wm/backends/_ewm_k_controller.py",
+    "src/ejepa_wm/backends/_canonical_event_state.py",
+]
+
+[tool.ruff.format]
+quote-style = "double"
+indent-style = "space"
+line-ending = "lf"
+
+[tool.ruff.lint]
+select = ["B", "C901", "C4", "E", "F", "I", "PIE", "RUF", "SIM", "UP"]
+ignore = [
+    "E501",    # The formatter handles layout; long strings and shell snippets are tolerated.
+    "RUF001",  # Japanese help text intentionally uses full-width punctuation.
+    "RUF002",
+    "RUF003",
+]
+
+[tool.ruff.lint.per-file-ignores]
+"src/ejepa_cli/cli.py" = [
+    "B008",   # Typer defaults are part of the CLI contract.
+    "C901",   # Large command handlers are kept as in the original runner.
+    "UP042",
+]
+"tests/test_cli_install_hints.py" = ["E402"]
+# `src/ejepa_wm` is the world model the paper measures, ported from the EWM repo.
+# It is kept at upstream style so a diff against that repo stays readable; only the
+# style families are silenced here, never F (undefined/unused names).
+"src/ejepa_wm/**/*.py" = [
+    "B905", "C408", "C416", "C420", "C901", "E402", "F841",
+    "PIE810", "RUF005", "RUF059", "SIM300",
+    "UP006", "UP035", "UP037", "UP045",
+]
+"scripts/*.py" = ["C901", "E402", "E731", "RUF059", "UP006", "UP035", "UP037", "UP045"]
+
+[tool.ruff.lint.mccabe]
+max-complexity = 10
+
+[tool.pytest.ini_options]
+pythonpath = ["src"]
+testpaths = ["tests"]
+
+[tool.coverage.run]
+relative_files = true
+include = ["src/**/*.py", "scripts/**/*.py"]
+omit = ["**/__init__.py", "tests/**/*.py", "src/ejepa_wm/tests/**/*.py"]
+
+[tool.coverage.report]
+show_missing = true
+skip_covered = true

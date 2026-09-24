@@ -1,0 +1,33 @@
+name = "AutomationBench"
+version = "0.1.0"
+default_executor = "mcp_react"
+
+[benchmark_metadata]
+targets = [
+  "sample",
+  "sales",
+  "marketing",
+  "operations",
+  "support",
+  "finance",
+  "hr",
+  "simple",
+  "all_domains",
+  "all_with_simple",
+]
+
+[config]
+target = "sample"
+toolset = "limited_zapier"
+max_turns = 50
+
+[green_agent]
+entrypoint = "green/automationbench_green_agent.py"
+host = "127.0.0.1"
+port = 0
+
+[[participants]]
+role = "agent"
+entrypoint = "purple/automationbench_purple_agent.py"
+host = "127.0.0.1"
+port = 0

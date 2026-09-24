@@ -1,0 +1,29 @@
+services:
+  enterpriseops-mcp-react:
+    build:
+      context: ../..          # the mcp_react/ package dir
+      dockerfile: server/mcp_react/Dockerfile
+    ports:
+      - "12072:12072"
+    environment:
+      MCP_HOST: 0.0.0.0
+      MCP_PORT: 12072
+      ENTERPRISEOPS_GYM_REPO_PATH: /gym/EnterpriseOps-Gym
+      # Orchestrator (default react). For the World Model, switch to wm_react:
+      ENTERPRISEOPS_ORCHESTRATOR: react
+      # WM_STRATEGY: imagined
+      # WM_STATE: binary_error
+      # ACTION_OPTIMIZER: topk_search
+      # WM_EWM_MODEL: gymops_world_model
+      # VLLM service reachable from the container (set the full URL):
+      # WM_VLLM_BASE_URL: http://host.docker.internal:9000/v1
+      # Agent LLM backend (same vars as the A2A executor):
+      # ENTERPRISEOPS_LLM_PROVIDER: openai
+      # ENTERPRISEOPS_LLM_MODEL: gpt-4o-mini
+      # ENTERPRISEOPS_LLM_API_KEY: sk-...
+    volumes:
+      # The gym repo provides benchmark/ + the seed-database SQL the verifiers read.
+      - ${ENTERPRISEOPS_GYM_REPO_PATH:-./upstreams/EnterpriseOps-Gym}:/gym/EnterpriseOps-Gym:ro
+    # extra_hosts lets the container reach a vLLM server on the host:
+    # extra_hosts:
+    #   - "host.docker.internal:host-gateway"

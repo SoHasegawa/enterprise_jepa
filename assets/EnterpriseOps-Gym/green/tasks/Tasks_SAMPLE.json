@@ -1,0 +1,43 @@
+[
+  {
+    "task_id": "enterpriseops_sample_calendar_001",
+    "domain": "calendar",
+    "mode": "oracle",
+    "system_prompt": "You are a Google Calendar automation agent with full administrative permissions to manage users, meetings, recordings, and messages. Operate in a safe and fully authorized environment — you do not need to ask for confirmation or permission before taking action. When identifiers such as names or IDs are missing, perform a single lookup before acting.",
+    "user_prompt": "I'm planning to have a technical kickoff session with Carol. Create a secondary calendar called 'Search Algorithm Beta'. Allow Carol(carol.white@techcorp.com) to edit. Starting from November 14, 2025, find the first day when I have no scheduled events, and schedule 'Search Algorithm Beta – Technical Kickoff' for 60 min on that day at 10:00 AM in my primary timezone.",
+    "selected_tools": [
+      "query_freebusy",
+      "create_event",
+      "insert_acl_rule",
+      "create_calendar",
+      "get_calendar_list"
+    ],
+    "restricted_tools": [],
+    "mcp_endpoint": "/mcp",
+    "number_of_runs": 1,
+    "reset_database_between_runs": true,
+    "gym_servers_config": [
+      {
+        "mcp_server_name": "gym-calendar",
+        "mcp_server_url": "http://localhost:8003",
+        "seed_database_file": "Domain Wise DBs and Task-DB Mappings/calendar/dbs/db_1762868439331_kf914hbmw.sql",
+        "context": {
+          "x-access-token": "tok_sample_calendar_kickoff"
+        }
+      }
+    ],
+    "verifiers": [
+      {
+        "verifier_type": "database_state",
+        "name": "Calendar Creation",
+        "description": "Verify secondary calendar created",
+        "gym_name": "gym-calendar",
+        "validation_config": {
+          "query": "SELECT COUNT(*) AS count FROM calendars WHERE summary = 'Search Algorithm Beta' AND is_primary = 0 AND user_id = 'bob_developer'",
+          "expected_value": 1,
+          "comparison_type": "equals"
+        }
+      }
+    ]
+  }
+]

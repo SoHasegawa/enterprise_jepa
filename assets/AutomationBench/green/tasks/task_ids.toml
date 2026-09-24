@@ -1,0 +1,8 @@
+# Task-id allow-lists per target.
+#
+# Only the bundled `sample` target is enumerated here; every domain target is
+# resolved from the upstream repository at run time (task ids are upstream's
+# `info.task_name` values, e.g. "sales.sf_lead_followup_task"), so listing them
+# here would duplicate upstream data and drift from it.
+
+sample = ["sample_sf_contact_phone_update", "sample_slack_digest_post"]

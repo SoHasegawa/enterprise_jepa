@@ -1,0 +1,41 @@
+# Terminal-Bench 2.0 target -> task-name lists (see green/task_loader.py).
+
+sample = [
+  "fix-git",
+]
+
+# Held-out world-model test split — the distinct task_ids in
+# ewm/trajectories/terminalbench_2_0_multi_model_world_model_test_trajectories.json
+# (29 tasks, split=test). Run with:
+#   ejepa bench run Terminal-Bench-2.0 --config target=world_model_test
+world_model_test = [
+  "adaptive-rejection-sampler",
+  "build-cython-ext",
+  "build-pmars",
+  "build-pov-ray",
+  "caffe-cifar-10",
+  "cancel-async-tasks",
+  "compile-compcert",
+  "crack-7z-hash",
+  "extract-moves-from-video",
+  "filter-js-from-html",
+  "fix-code-vulnerability",
+  "gcode-to-text",
+  "gpt2-codegolf",
+  "install-windows-3.11",
+  "log-summary-date-ranges",
+  "mailman",
+  "make-doom-for-mips",
+  "mteb-leaderboard",
+  "multi-source-data-merger",
+  "password-recovery",
+  "path-tracing-reverse",
+  "polyglot-c-py",
+  "query-optimize",
+  "regex-log",
+  "rstan-to-pystan",
+  "sanitize-git-repo",
+  "torch-pipeline-parallelism",
+  "train-fasttext",
+  "winning-avg-corewars",
+]

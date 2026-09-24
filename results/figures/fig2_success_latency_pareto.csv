@@ -1,0 +1,84 @@
+benchmark,world_model,harness,rollout_mode,runs,success_rate_pct,success_rate_stdev,mean_task_seconds,total_tasks,on_pareto_front,summary_files
+DevOps-Gym,LLM-WM (tool output),itp_i,closed_loop,1,18.0,0.0,371.14158000000003,100,True,ejepa-wm-harnesses-enterpriseops-agentworld-20260907T072841Z.json
+DevOps-Gym,Enterprise-JEPA,itp_i,closed_loop,1,10.0,0.0,535.16407,100,False,ejepa-wm-harnesses-devopsgym-jepa-20260911T035143Z.json
+DevOps-Gym,LLM-WM (state output),beam_interval,closed_loop,1,9.0,0.0,539.4784999999999,100,False,ejepa-wm-harnesses-devops-llm-wm-20260913T184745Z.json
+DevOps-Gym,LLM-WM (state output),itp_i,closed_loop,1,7.000000000000001,0.0,263.75781,100,True,ejepa-wm-harnesses-devops-gym-llm-wm-20260912T042520Z.json
+DevOps-Gym,Enterprise-JEPA,beam_critic,open_loop,1,5.0,0.0,361.0597,100,False,ejepa-wm-harnesses-DevOps-Gym-beam-critic-separate-20260914T014229Z.json
+DevOps-Gym,Enterprise-JEPA,beam_interval,closed_loop,1,5.0,0.0,504.98848,100,False,ejepa-wm-harnesses-devopsgym-jepa-20260911T035143Z.json
+DevOps-Gym,Enterprise-JEPA,beam_critic,closed_loop,1,5.0,0.0,712.80877,100,False,ejepa-wm-harnesses-devopsgym-jepa-20260911T035143Z.json
+DevOps-Gym,Enterprise-JEPA,revision,closed_loop,1,5.0,0.0,359.83976,100,False,ejepa-wm-harnesses-devopsgym-jepa-20260911T035143Z.json
+DevOps-Gym,LLM-WM (tool output),beam_interval,closed_loop,1,1.0,0.0,813.5693399999999,100,False,ejepa-wm-harnesses-enterpriseops-agentworld-20260907T072841Z.json
+EnterpriseOps-Gym,Enterprise-JEPA,itp_i,closed_loop,3,41.25,5.448623679425842,102.89370416666667,80,False,ejepa-wm-harnesses-enterpriseopsgym-jepa-20260911T061213Z.json;ejepa-wm-harnesses-enterpriseopsgym-jepa-separate-20260912T205112Z.json;ejepa-wm-harnesses-wm-harnesses-20260903T200318Z.json
+EnterpriseOps-Gym,Enterprise-JEPA,reference,closed_loop,1,41.25,0.0,37.7352625,80,True,ejepa-wm-harnesses-wm-harnesses-20260903T200318Z.json
+EnterpriseOps-Gym,Enterprise-JEPA,beam_critic,closed_loop,3,40.0,2.5,99.77425,80,False,ejepa-wm-harnesses-enterpriseopsgym-jepa-20260911T061213Z.json;ejepa-wm-harnesses-enterpriseopsgym-jepa-separate-20260913T035007Z.json;ejepa-wm-harnesses-wm-harnesses-20260903T200318Z.json
+EnterpriseOps-Gym,LLM-WM (state output),beam_critic,closed_loop,1,38.75,0.0,203.92713924050634,80,False,ejepa-wm-harnesses-enterpriesops-gym-llm-wm-20260911T173111Z.json
+EnterpriseOps-Gym,LLM-WM (state output),revision,closed_loop,1,38.75,0.0,62.488175,80,False,ejepa-wm-harnesses-enterpriesops-gym-llm-wm-20260911T173111Z.json
+EnterpriseOps-Gym,Enterprise-JEPA,revision,open_loop,1,38.75,0.0,44.8609,80,False,ejepa-wm-harnesses-enterpriseopsgym-jepa-separate-20260913T074508Z.json
+EnterpriseOps-Gym,LLM-WM (state output),revision,open_loop,1,38.75,0.0,32.4716375,80,True,ejepa-wm-harnesses-enterpriseopsgym-llm-wm-2-20260914T040655Z.json
+EnterpriseOps-Gym,LLM-WM (tool output),beam_interval,closed_loop,2,37.5,3.5355339059327378,306.9541125,80,False,ejepa-wm-harnesses-enterpriseops-agentworld-20260904T044057Z.json;ejepa-wm-harnesses-enterpriseops-agentworld-20260906T203733Z.json
+EnterpriseOps-Gym,LLM-WM (tool output),revision,closed_loop,1,37.5,0.0,76.25115,80,False,ejepa-wm-harnesses-enterpriseops-agentworld-20260906T203733Z.json
+EnterpriseOps-Gym,LLM-WM (state output),beam_critic,open_loop,1,37.5,0.0,66.54701250000001,80,False,ejepa-wm-harnesses-enterpriseopsgym-llm-wm-2-20260914T040655Z.json
+EnterpriseOps-Gym,LLM-WM (state output),reference,open_loop,1,37.5,0.0,35.6381125,80,False,ejepa-wm-harnesses-enterpriseopsgym-llm-wm-2-20260914T040655Z.json
+EnterpriseOps-Gym,LLM-WM (state output),beam_interval,closed_loop,1,36.25,0.0,98.28125,80,False,ejepa-wm-harnesses-enterpriesops-gym-llm-wm-20260911T173111Z.json
+EnterpriseOps-Gym,Enterprise-JEPA,beam_critic,open_loop,2,36.25,0.0,49.6477,80,False,ejepa-wm-harnesses-enterpriseopsgym-jepa-separate-20260913T074508Z.json;ejepa-wm-harnesses-enterpriseopsgym-jepa-separate-20260913T165316Z.json
+EnterpriseOps-Gym,Enterprise-JEPA,revision,closed_loop,2,35.625,2.6516504294495533,48.242337500000005,80,False,ejepa-wm-harnesses-enterpriseopsgym-jepa-20260911T061213Z.json;ejepa-wm-harnesses-wm-harnesses-20260903T200318Z.json
+EnterpriseOps-Gym,LLM-WM (tool output),itp_i,closed_loop,3,35.416666666666664,2.602082499332666,56.700408098304834,80,False,ejepa-wm-harnesses-enterpriseops-agentworld-20260904T044057Z.json;ejepa-wm-harnesses-enterpriseops-agentworld-20260906T171503Z.json;ejepa-wm-harnesses-enterpriseops-agentworld-20260906T203733Z.json
+EnterpriseOps-Gym,Enterprise-JEPA,beam_interval,closed_loop,3,35.416666666666664,3.1457643480294792,77.7240375,80,False,ejepa-wm-harnesses-enterpriseopsgym-jepa-20260911T061213Z.json;ejepa-wm-harnesses-enterpriseopsgym-jepa-separate-20260912T205112Z.json;ejepa-wm-harnesses-wm-harnesses-20260903T200318Z.json
+EnterpriseOps-Gym,LLM-WM (state output),beam_interval,open_loop,1,35.0,0.0,52.2606125,80,False,ejepa-wm-harnesses-enterpriseopsgym-llm-wm-2-20260914T040655Z.json
+EnterpriseOps-Gym,LLM-WM (state output),itp_i,open_loop,1,33.75,0.0,33.1043625,80,False,ejepa-wm-harnesses-enterpriseopsgym-llm-wm-2-20260914T040655Z.json
+EnterpriseOps-Gym,LLM-WM (state output),itp_i,closed_loop,1,32.5,0.0,35.3074125,80,False,ejepa-wm-harnesses-enterpriesops-gym-llm-wm-20260911T173111Z.json
+Terminal-Bench-2.0,LLM-WM (tool output),itp_i,closed_loop,1,33.70786516853933,0.0,271.3307528089888,89,True,ejepa-wm-harnesses-terminalbench-agentworld-20260906T203058Z.json
+Terminal-Bench-2.0,LLM-WM (state output),beam_critic,open_loop,1,31.46067415730337,0.0,327.3693033707865,89,False,ejepa-wm-harnesses-terminalbench-llm-wm-20260914T032713Z.json
+Terminal-Bench-2.0,Enterprise-JEPA,itp_i,closed_loop,1,30.337078651685395,0.0,507.5386516853933,89,False,ejepa-wm-harnesses-terminalbench-jepa-20260910T184302Z.json
+Terminal-Bench-2.0,Enterprise-JEPA,beam_critic,closed_loop,1,30.337078651685395,0.0,476.01821348314604,89,False,ejepa-wm-harnesses-terminalbench-jepa-20260910T184302Z.json
+Terminal-Bench-2.0,LLM-WM (state output),revision,closed_loop,1,30.337078651685395,0.0,362.9168539325843,89,False,ejepa-wm-harnesses-terminalbench-llm-wm-20260913T171052Z.json
+Terminal-Bench-2.0,Enterprise-JEPA,beam_interval,closed_loop,1,29.213483146067414,0.0,384.1264943820225,89,False,ejepa-wm-harnesses-terminalbench-jepa-20260910T184302Z.json
+Terminal-Bench-2.0,LLM-WM (state output),itp_i,closed_loop,1,29.213483146067414,0.0,269.6224157303371,89,True,ejepa-wm-harnesses-terminalbench-llm-wm-20260910T052224Z.json
+Terminal-Bench-2.0,LLM-WM (state output),beam_interval,open_loop,1,29.213483146067414,0.0,290.5524831460674,89,False,ejepa-wm-harnesses-terminalbench-llm-wm-20260914T032850Z.json
+Terminal-Bench-2.0,LLM-WM (tool output),revision,closed_loop,1,28.08988764044944,0.0,527.3749662921349,89,False,ejepa-wm-harnesses-terminalbench-agentworld-20260906T203058Z.json
+Terminal-Bench-2.0,Enterprise-JEPA,revision,closed_loop,1,28.08988764044944,0.0,318.42959550561795,89,False,ejepa-wm-harnesses-terminalbench-jepa-20260910T184302Z.json
+Terminal-Bench-2.0,Enterprise-JEPA,beam_critic,open_loop,1,25.842696629213485,0.0,290.35869662921345,89,False,ejepa-wm-harnesses-Terminal-Bench-2.0-beam-critic-separate-20260913T174434Z.json
+Terminal-Bench-2.0,LLM-WM (tool output),beam_interval,closed_loop,1,21.34831460674157,0.0,953.5881797752809,89,False,ejepa-wm-harnesses-terminalbench-agentworld-20260906T203058Z.json
+WorkBench,LLM-WM (state output),revision,closed_loop,1,71.0,0.0,32.51147,100,True,ejepa-wm-harnesses-workbench-llm-wm-20260909T224406Z.json
+WorkBench,LLM-WM (tool output),revision,closed_loop,1,70.0,0.0,46.564099999999996,100,False,ejepa-wm-harnesses-workbench-agentworld-20260905T063814Z.json
+WorkBench,LLM-WM (tool output),reference,closed_loop,1,68.0,0.0,33.65586,100,False,ejepa-wm-harnesses-workbench-agentworld-20260905T063814Z.json
+WorkBench,Enterprise-JEPA,revision,closed_loop,2,65.5,9.192388155425117,20.75,100,True,ejepa-wm-harnesses-workbench-jepa-20260909T153841Z.json;ejepa-wm-harnesses-workbench-jepa-20260910T183732Z.json
+WorkBench,Enterprise-JEPA,beam_critic,open_loop,1,65.0,0.0,31.51425,100,False,ejepa-wm-harnesses-WorkBench-beam-critic-separate-20260913T165159Z.json
+WorkBench,Enterprise-JEPA,itp_i,closed_loop,2,64.5,7.7781745930520225,26.892905,100,False,ejepa-wm-harnesses-workbench-jepa-20260909T153841Z.json;ejepa-wm-harnesses-workbench-jepa-20260910T183732Z.json
+WorkBench,LLM-WM (tool output),beam_interval,closed_loop,1,64.0,0.0,313.51305,100,False,ejepa-wm-harnesses-workbench-agentworld-20260905T063814Z.json
+WorkBench,Enterprise-JEPA,reference,closed_loop,2,62.5,4.949747468305833,13.36289,100,True,ejepa-wm-harnesses-workbench-jepa-20260909T153841Z.json;ejepa-wm-harnesses-workbench-jepa-20260910T183732Z.json
+WorkBench,Enterprise-JEPA,beam_critic,closed_loop,2,62.0,4.242640687119285,38.735085000000005,100,False,ejepa-wm-harnesses-workbench-jepa-20260909T153841Z.json;ejepa-wm-harnesses-workbench-jepa-20260910T183732Z.json
+WorkBench,LLM-WM (state output),beam_interval,closed_loop,1,61.0,0.0,69.87194000000001,100,False,ejepa-wm-harnesses-workbench-llm-wm-20260909T224406Z.json
+WorkBench,Enterprise-JEPA,beam_interval,closed_loop,2,60.5,2.1213203435596424,32.643384999999995,100,False,ejepa-wm-harnesses-workbench-jepa-20260909T153841Z.json;ejepa-wm-harnesses-workbench-jepa-20260910T183732Z.json
+WorkBench,LLM-WM (tool output),itp_i,closed_loop,1,57.99999999999999,0.0,25.41346,100,False,ejepa-wm-harnesses-workbench-agentworld-20260905T063814Z.json
+WorkBench,LLM-WM (state output),beam_critic,closed_loop,1,56.99999999999999,0.0,117.03802,100,False,ejepa-wm-harnesses-workbench-llm-wm-20260909T224406Z.json
+WorkBench,LLM-WM (state output),itp_i,closed_loop,2,34.0,48.08326112068523,8.451765,100,True,ejepa-wm-harnesses-workbench-llm-wm-20260909T223306Z.json;ejepa-wm-harnesses-workbench-llm-wm-20260909T224406Z.json
+WorkBench,LLM-WM (tool output),beam_critic,closed_loop,1,28.999999999999996,0.0,574.05702,100,False,ejepa-wm-harnesses-workbench-agentworld-20260905T063814Z.json
+Workspace-Bench,LLM-WM (state output),revision,closed_loop,1,50.0,0.0,44.22347640885972,100,True,ejepa-wm-harnesses-workspace-bench-llm-wm-20260909T173305Z.json
+Workspace-Bench,LLM-WM (tool output),revision,closed_loop,1,45.0,0.0,50.93032994850539,100,False,ejepa-wm-harnesses-workspace-bench-agentworld-20260906T063334Z.json
+Workspace-Bench,Enterprise-JEPA,revision,closed_loop,1,45.0,0.0,39.30816806372255,100,True,ejepa-wm-harnesses-workspace-bench-jepa-20260909T073946Z.json
+Workspace-Bench,Enterprise-JEPA,beam_critic,open_loop,1,32.0,0.0,28.05622941195965,100,False,ejepa-wm-harnesses-Workspace-Bench-beam-critic-separate-20260914T005540Z.json
+Workspace-Bench,LLM-WM (tool output),beam_interval,closed_loop,1,32.0,0.0,64.24280916766264,100,False,ejepa-wm-harnesses-workspace-bench-agentworld-20260906T063334Z.json
+Workspace-Bench,LLM-WM (tool output),beam_critic,closed_loop,1,32.0,0.0,64.55285052652471,100,False,ejepa-wm-harnesses-workspace-bench-agentworld-20260906T171353Z.json
+Workspace-Bench,Enterprise-JEPA,beam_interval,closed_loop,1,32.0,0.0,48.82512439807877,100,False,ejepa-wm-harnesses-workspace-bench-jepa-20260909T073946Z.json
+Workspace-Bench,Enterprise-JEPA,beam_critic,closed_loop,1,32.0,0.0,28.33448358462192,100,False,ejepa-wm-harnesses-workspace-bench-jepa-20260909T073946Z.json
+Workspace-Bench,Enterprise-JEPA,reference,closed_loop,1,32.0,0.0,27.18074193001725,100,True,ejepa-wm-harnesses-workspace-bench-jepa-20260909T073946Z.json
+Workspace-Bench,LLM-WM (state output),beam_critic,closed_loop,1,32.0,0.0,35.127128181727606,100,False,ejepa-wm-harnesses-workspace-bench-llm-wm-20260909T173305Z.json
+Workspace-Bench,Enterprise-JEPA,itp_i,closed_loop,1,28.000000000000004,0.0,17.683173539191486,100,True,ejepa-wm-harnesses-workspace-bench-jepa-20260909T073946Z.json
+Workspace-Bench,LLM-WM (tool output),itp_i,closed_loop,1,25.0,0.0,12.833594264676794,100,True,ejepa-wm-harnesses-workspace-bench-agentworld-20260906T063334Z.json
+Workspace-Bench,LLM-WM (state output),itp_i,closed_loop,3,20.666666666666668,17.897858344878397,11.432429006379097,100,True,ejepa-wm-harnesses-workspace-bench-llm-wm-20260909T153544Z.json;ejepa-wm-harnesses-workspace-bench-llm-wm-20260909T173220Z.json;ejepa-wm-harnesses-workspace-bench-llm-wm-20260909T173305Z.json
+Workspace-Bench,LLM-WM (state output),beam_interval,closed_loop,3,16.0,16.0,42.30499685970135,100,False,ejepa-wm-harnesses-workspace-bench-llm-wm-20260909T153544Z.json;ejepa-wm-harnesses-workspace-bench-llm-wm-20260909T173220Z.json;ejepa-wm-harnesses-workspace-bench-llm-wm-20260909T173305Z.json
+crmarenapro,LLM-WM (state output),beam_interval,closed_loop,1,34.0,0.0,169.38916666666668,100,True,ejepa-wm-harnesses-crmarenapro-llm-wm-20260908T163958Z.json
+crmarenapro,Enterprise-JEPA,reference,closed_loop,1,32.0,0.0,74.25707070707071,100,True,ejepa-wm-harnesses-crmarenapro-jepa-revised-harness-20260908T220235Z.json
+crmarenapro,Enterprise-JEPA,beam_critic,open_loop,1,30.0,0.0,81.6324,100,False,ejepa-wm-harnesses-crmarenapro-beam-critic-separate-20260913T143523Z.json
+crmarenapro,LLM-WM (state output),itp_i,closed_loop,1,30.0,0.0,79.47252525252524,100,False,ejepa-wm-harnesses-crmarenapro-llm-wm-20260908T163958Z.json
+crmarenapro,Enterprise-JEPA,beam_critic,closed_loop,1,28.999999999999996,0.0,178.46875,100,False,ejepa-wm-harnesses-crmarenapro-jepa-revised-harness-20260908T220235Z.json
+crmarenapro,Enterprise-JEPA,revision,closed_loop,1,28.000000000000004,0.0,103.399793814433,100,False,ejepa-wm-harnesses-crmarenapro-jepa-revised-harness-20260908T220235Z.json
+crmarenapro,LLM-WM (state output),beam_critic,closed_loop,1,27.0,0.0,189.77677966101695,100,False,ejepa-wm-harnesses-crmarenapro-llm-wm-20260908T163958Z.json
+crmarenapro,LLM-WM (tool output),revision,closed_loop,1,26.0,0.0,189.93974358974359,100,False,ejepa-wm-harnesses-crmarenapro-agentworld-revised-harness-20260906T000410Z.json
+crmarenapro,Enterprise-JEPA,beam_interval,closed_loop,2,25.0,12.727922061357855,96.78326515151514,100,False,ejepa-wm-harnesses-crmarenapro-jepa-20260904T213144Z.json;ejepa-wm-harnesses-crmarenapro-jepa-revised-harness-20260908T220235Z.json
+crmarenapro,LLM-WM (state output),revision,closed_loop,1,23.0,0.0,124.30540816326531,100,False,ejepa-wm-harnesses-crmarenapro-llm-wm-20260908T163958Z.json
+crmarenapro,Enterprise-JEPA,itp_i,closed_loop,2,21.5,9.192388155425121,99.50990555555556,100,False,ejepa-wm-harnesses-crmarenapro-jepa-20260904T213144Z.json;ejepa-wm-harnesses-crmarenapro-jepa-revised-harness-20260908T220235Z.json
+crmarenapro,LLM-WM (tool output),itp_i,closed_loop,2,13.5,3.5355339059327378,35.60125,100,True,ejepa-wm-harnesses-crmarenapro-agentworld-20260904T202248Z.json;ejepa-wm-harnesses-crmarenapro-agentworld-revised-harness-20260905T033125Z.json
+crmarenapro,LLM-WM (tool output),beam_interval,closed_loop,1,13.0,0.0,277.8345238095238,100,False,ejepa-wm-harnesses-crmarenapro-agentworld-revised-harness-20260905T033125Z.json
+crmarenapro,LLM-WM (tool output),beam_critic,closed_loop,1,4.0,0.0,254.93800000000002,100,False,ejepa-wm-harnesses-crmarenapro-agentworld-revised-harness-20260905T033125Z.json

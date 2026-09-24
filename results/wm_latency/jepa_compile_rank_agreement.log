@@ -1,0 +1,5 @@
+Loading weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading weights: 100%|██████████| 310/310 [00:00<00:00, 5841.12it/s]
+Loading weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading weights: 100%|██████████| 310/310 [00:00<00:00, 8421.59it/s]
+histories=24 candidates=8 h=3
+top-1 agreement 24/24; spearman mean 1.000 min 1.000
+abs score diff: max 0.0350 mean 0.0111; mean within-call score spread 2.295

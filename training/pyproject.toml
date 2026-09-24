@@ -1,0 +1,25 @@
+[project]
+name = "enterprise-jepa-training"
+version = "1.0.0"
+description = "Enterprise-JEPA world-model training and data preparation (vendored from the EWM research repository)"
+readme = "README.md"
+requires-python = ">=3.12.4"
+dependencies = [
+    "accelerate>=1.13.0",
+    "anthropic>=0.96.0",
+    "datasets>=4.8.4",
+    "langchain-mcp-adapters>=0.2.2",
+    "langchain-openai>=1.2.1",
+    "ollama>=0.6.1",
+    "openai>=2.32.0",
+    "peft>=0.19.1",
+    "pillow>=12.2.0",
+    "protobuf>=7.34.1",
+    "sentencepiece>=0.2.1",
+    "tiktoken>=0.12.0",
+    "torch==2.8.0",
+    "tqdm>=4.67.1",
+    "transformers==5.9.0",
+    "trl>=1.2.0",
+    "vllm==0.20.0",
+]

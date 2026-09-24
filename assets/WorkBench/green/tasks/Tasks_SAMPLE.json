@@ -1,0 +1,16 @@
+[
+  {
+    "id": "sample_0000",
+    "task": "Delete my last email from nadia",
+    "outcome": ["email.delete_email.func(email_id=\"00000479\")"],
+    "domains": ["email"],
+    "target": "sample"
+  },
+  {
+    "id": "sample_0001",
+    "task": "Delete my last email from sofia",
+    "outcome": ["email.delete_email.func(email_id=\"00000438\")"],
+    "domains": ["email"],
+    "target": "sample"
+  }
+]

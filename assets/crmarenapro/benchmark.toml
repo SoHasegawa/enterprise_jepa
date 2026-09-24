@@ -1,0 +1,34 @@
+name = "crmarenapro"
+version = "1.0.0"
+default_executor = "baseline_crm_agent"
+
+[benchmark_metadata]
+targets = [
+  "sample",
+  "crmarena_100_test",
+  "crmarena_train",
+  "crmarena_valid",
+  "world_model_test",
+  "world_model_test_longest_100",
+]
+
+[config]
+target = "sample"
+task_limit = 1
+# Held-out world-model test split (428 B2B tasks) from
+# ewm/trajectories/crmarenapro_multi_model_world_model_test_trajectories.json;
+# task ids live in green/tasks/task_ids.toml. Use with (drop task_limit):
+# target = "world_model_test"
+# Quick long-trajectory subset: target = "world_model_test_longest_100"
+
+
+[green_agent]
+entrypoint = "green/crmarenapro_green_agent.py"
+host = "127.0.0.1"
+port = 0
+
+[[participants]]
+role = "agent"
+entrypoint = "purple/crmarenapro_purple_agent.py"
+host = "127.0.0.1"
+port = 0

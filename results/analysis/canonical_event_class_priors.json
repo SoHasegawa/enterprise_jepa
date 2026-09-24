@@ -1,0 +1,120 @@
+{
+ "source": "canonical_event_with_nudge_llm_enterpriseops_gym_terminalbench_2_0_crmarenapro_train_examples.jsonl (EnterpriseOps-Gym + crmarenapro rows)",
+ "examples": 5574,
+ "by_benchmark": {
+  "EnterpriseOps-Gym": 5574
+ },
+ "smoothing": "add-one",
+ "terminal_probability": 0.263740771123872,
+ "fields": {
+  "action_type": {
+   "communicate": 0.036725188104622,
+   "create": 0.3267646005016123,
+   "delete": 0.01791472590469366,
+   "read": 0.3830168398423504,
+   "run": 0.013794338946614117,
+   "search": 0.05249014690075242,
+   "unknown": 0.0032246506628448583,
+   "update": 0.16391974202794699,
+   "validate": 0.002149767108563239
+  },
+  "error_signature": {
+   "dependency_missing": 0.0007163323782234957,
+   "invalid_argument": 0.13073065902578795,
+   "none": 0.7811604584527221,
+   "not_found": 0.06787249283667622,
+   "parse_error": 0.00035816618911174784,
+   "permission_denied": 0.0064469914040114614,
+   "policy_risk": 0.00017908309455587392,
+   "runtime_error": 0.0071633237822349575,
+   "test_failed": 0.00035816618911174784,
+   "unknown": 0.00501432664756447
+  },
+  "execution_status": {
+   "failure": 0.17332855350421222,
+   "no_op": 0.0001792435920415845,
+   "partial": 0.05520702634880803,
+   "success": 0.7673418175300233,
+   "unknown": 0.00394335902491486
+  },
+  "object_type": {
+   "account": 0.14523341083884814,
+   "branch": 0.010194956179574315,
+   "calendar": 0.10499016276158112,
+   "case": 0.16776962976211768,
+   "comment": 0.01895904131640136,
+   "customer": 0.012162403863351816,
+   "database_row": 0.0010731532820604543,
+   "file": 0.13897335002682884,
+   "label": 0.052226793060275445,
+   "message": 0.06653550348774817,
+   "package": 0.01895904131640136,
+   "permission": 0.05473081738508317,
+   "process": 0.010910391700947953,
+   "quote": 0.00017885888034340904,
+   "repository": 0.07476301198354499,
+   "ticket": 0.07655160078697908,
+   "unknown": 0.045787873367912714
+  },
+  "progress_signal": {
+   "negative": 0.18931516672642523,
+   "neutral": 0.09752599498027967,
+   "positive": 0.710290426676228,
+   "unknown": 0.0028684116170670493
+  },
+  "risk_signal": {
+   "confidentiality_risk": 0.050546692955726835,
+   "destructive_action": 0.0037641154328732747,
+   "irreversible_action": 0.0005377307761247536,
+   "none": 0.9408496146262771,
+   "policy_risk": 0.004301846208998029
+  },
+  "side_effect_type": {
+   "created": 0.20505014326647564,
+   "deleted": 0.013073065902578796,
+   "executed": 0.010744985673352435,
+   "failed_validation": 0.1552650429799427,
+   "modified": 0.1318051575931232,
+   "none": 0.0164756446991404,
+   "retrieved": 0.42478510028653294,
+   "sent": 0.03832378223495702,
+   "unknown": 0.0030444126074498567,
+   "validated": 0.0014326647564469914
+  },
+  "information_gain": {
+   "high": 0.15271554041943,
+   "low": 0.14787596343430723,
+   "medium": 0.6963613550815558,
+   "negative": 0.0001792435920415845,
+   "unknown": 0.002867897472665352
+  },
+  "information_sufficiency": {
+   "insufficient": 0.1791606886657102,
+   "sufficient": 0.8208393113342898
+  },
+  "recommended_abstract_action": {
+   "avoid": 0.0005373455131649651,
+   "clarify": 0.0032240730789897904,
+   "finalize": 0.13505283897546122,
+   "inspect": 0.29321153501701597,
+   "proceed": 0.476804585348379,
+   "retrieve": 0.013970983342289092,
+   "rollback": 0.0005373455131649651,
+   "search": 0.05212251477700161,
+   "validate": 0.024538778434533406
+  },
+  "missing_information_type": {
+   "current_state": 0.16104734576757532,
+   "dependency": 0.03748206599713056,
+   "file_context": 0.005380200860832138,
+   "none": 0.7959110473457676,
+   "object_id": 0.16624820659971307,
+   "permission": 0.00430416068866571,
+   "policy": 0.0014347202295552368,
+   "schema": 0.012733142037302726,
+   "test_result": 0.0034074605451936872,
+   "unknown": 0.009505021520803443,
+   "user_intent": 0.06958393113342898
+  }
+ }
+}

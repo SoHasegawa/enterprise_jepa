@@ -1,0 +1,25 @@
+name = "Terminal-Bench-2.0"
+version = "0.1.0"
+default_executor = "llm_shell"
+
+[config]
+target = "sample"
+# Held-out world-model test split (29 tasks) from
+# ewm/trajectories/terminalbench_2_0_multi_model_world_model_test_trajectories.json;
+# task names live in green/tasks/task_ids.toml. Use with:
+# target = "world_model_test"
+# oracle = true                         # run solve.sh locally (no purple LLM)
+# max_parallel = 1
+# num_shards = 1
+# shard_index = 0
+
+[green_agent]
+entrypoint = "green/terminal_bench_green_agent.py"
+host = "127.0.0.1"
+port = 0
+
+[[participants]]
+role = "agent"
+entrypoint = "purple/terminal_bench_purple_agent.py"
+host = "127.0.0.1"
+port = 0
