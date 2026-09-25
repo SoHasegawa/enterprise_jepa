@@ -65,7 +65,7 @@ def ensure_no_proxy(
     env: dict[str, str],
     extra_hosts_or_urls: Iterable[str | None] = (),
 ) -> dict[str, str]:
-    """ローカル通信が proxy を経由しないよう `NO_PROXY` / `no_proxy` を正規化する。"""
+    """Normalize `NO_PROXY` / `no_proxy` so local traffic bypasses the proxy."""
     entries: list[str] = []
     seen: set[str] = set()
 

@@ -216,11 +216,8 @@ def infrastructure_failure(summary: dict[str, Any]) -> bool:
     )
     if broken >= 0.5 * len(per_task):
         return True
-    # A dead agent endpoint does not have to take half the tasks with it. An
-    # AutomationBench revision run lost 254 of 600 tasks to APIConnectionError, scored
-    # 0.105 against 0.173 for its sibling, and passed the 50% rule. Connection errors
-    # are never a property of the agent's behaviour, unlike "max_turns reached", so a
-    # much lower threshold is right for them specifically.
+    # Connection errors are never a property of the agent's behaviour, unlike
+    # "max_turns reached", so they quarantine a run at a much lower threshold.
     refused = sum(
         1
         for t in per_task

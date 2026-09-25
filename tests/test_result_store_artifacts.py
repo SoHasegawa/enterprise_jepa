@@ -120,7 +120,7 @@ def test_build_execution_identity_handles_empty_and_many_task_labels(tmp_path: P
     created_at = datetime(2026, 4, 20, 0, 0, tzinfo=UTC)
 
     all_tasks = build_execution_identity(
-        benchmark_name="名前/with spaces",
+        benchmark_name="★/with spaces",  # non-ASCII is dropped, spaces become underscores
         executor_name="",
         request_config={"target": "", "task_ids": []},
         participants={},

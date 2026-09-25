@@ -98,7 +98,7 @@ hash `89c6c6012051` with the temperature / top_p settings above.
 |---------|-------|
 | Model | `Qwen/Qwen3.6-27B` (same-node local vLLM, served as `Qwen3.6-27B`) |
 | Cluster / accelerator stack | the GPU cluster AMD GPU nodes via ROCm vLLM |
-| Slurm wrapper | a site-specific submit script, not included here (see `docs/provenance.md`) |
+| Slurm wrapper | a site-specific submit script, not included here |
 | Slurm job | one `EWM_Test80` job per run, `--partition=batch-8gpu --gres=gpu:8 --nodes=1 --exclusive --time=01:00:00` |
 | vLLM serve | TP=8 inferred from `SLURM_JOB_GPUS`; `--enable-auto-tool-choice`; `--tool-call-parser qwen3_xml`; `--reasoning-parser qwen3`; max model len 131072 |
 | Config hash | `b1991ffc2738` |

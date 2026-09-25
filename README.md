@@ -25,7 +25,7 @@ policy LLM  ──candidate actions──▶  harness  ──imagined rollout─
 | `assets/` | Adapters for the five benchmarks: EnterpriseOps-Gym, CRMArena-Pro, WorkBench, AutomationBench, Terminal-Bench 2.0 |
 | `training/` | The JEPA training and data-preparation pipeline (canonical-event labelling, trajectory generation, fine-tuning) |
 | `scripts/` | Run scripts for every experiment in the paper, plus the summarizers and figure scripts |
-| `results/` | The paper's derived numbers: per-run CSVs, figure data, and the latency measurements |
+| `results/` | Where runs, summaries and figures are written |
 | `docs/` | Setup, the reproduction protocol table by table, training, and provenance notes |
 
 ## Quick start
@@ -65,8 +65,7 @@ The fixed configuration behind every number — eight candidate plans, imaginati
 three, two executed steps per re-plan, open-loop rollouts, score margin 0.10, temperature
 0.7, one refinement round over the top four, terminal advice at 0.75 — is stated with its
 flags in `docs/main_table_protocol.md`, along with the per-benchmark parallelism and the
-measured cost of each run. The repository carries only what the paper reports; see
-`docs/provenance.md`.
+measured cost of each run. The repository carries only what the paper reports.
 
 ## Requirements
 
@@ -78,8 +77,3 @@ measured cost of each run. The repository carries only what the paper reports; s
 * Docker for the CRMArena-Pro databases, the EnterpriseOps-Gym MCP tool servers, and
   Terminal-Bench 2.0's per-task containers
 
-## Notes
-
-`docs/provenance.md` records what this repository is: an extraction from a larger internal
-benchmark monorepo, what was dropped in the extraction, and the handful of places where the
-code here deliberately differs from the code that produced the recorded runs.

@@ -20,7 +20,7 @@ SEMVER_PATTERN = re.compile(
 
 @dataclass(slots=True)
 class BenchmarkComponentVersions:
-    """ベンチマークを構成する各コンポーネントの版情報。"""
+    """Version information for each component of a benchmark."""
 
     benchmark_version: str | None
     green_agent_version: str | None
@@ -29,7 +29,7 @@ class BenchmarkComponentVersions:
 
 
 def normalize_semver(raw_value: str, *, source: str) -> str:
-    """semver 文字列を正規化し、形式不正なら例外を送出する。"""
+    """Normalize a semver string, raising if it is malformed."""
     normalized = raw_value.strip()
     if not normalized:
         raise ValueError(f"Empty semantic version: {source}")
@@ -39,7 +39,7 @@ def normalize_semver(raw_value: str, *, source: str) -> str:
 
 
 def normalize_optional_semver(raw_value: Any, *, source: str) -> str | None:
-    """未設定を許容しつつ、設定済みなら semver として検証する。"""
+    """Allow an unset value, but validate it as semver when it is set."""
     if raw_value is None:
         return None
     if not isinstance(raw_value, str):
@@ -60,7 +60,7 @@ def _load_toml(path: Path) -> dict[str, Any]:
 
 
 def load_benchmark_version(benchmark_dir: Path) -> str | None:
-    """benchmark.toml から benchmark 自体の版情報を読む。"""
+    """Read the benchmark's own version from benchmark.toml."""
     config_path = benchmark_dir / "benchmark.toml"
     if not config_path.exists():
         return None
@@ -72,7 +72,7 @@ def load_benchmark_version(benchmark_dir: Path) -> str | None:
 
 
 def load_component_version(component_dir: Path, *, env_name: str | None = None) -> str | None:
-    """component dir 直下の version.toml / pyproject.toml から版情報を読む。"""
+    """Read a version from version.toml / pyproject.toml in a component directory."""
     if env_name:
         env_value = os.getenv(env_name)
         normalized_env = normalize_optional_semver(
@@ -109,7 +109,7 @@ def resolve_benchmark_component_versions(
     *,
     executor_names: list[str] | None = None,
 ) -> BenchmarkComponentVersions:
-    """ベンチマーク配下の green / purple / executor 版情報をまとめて返す。"""
+    """Collect the green / purple / executor versions of one benchmark."""
     executor_versions: dict[str, str | None] = {}
     for executor_name in executor_names or []:
         executor_versions[executor_name] = load_component_version(
@@ -125,7 +125,7 @@ def resolve_benchmark_component_versions(
 
 
 def format_executor_versions(executor_versions: Mapping[str, str | None]) -> str:
-    """executor 名と版情報の対応を 1 行表示向けに整形する。"""
+    """Format executor names and versions for single-line display."""
     if not executor_versions:
         return "—"
     return ", ".join(
@@ -139,7 +139,7 @@ def format_component_version_summary(
     purple_agent_version: str | None,
     executor_version: str | None,
 ) -> str:
-    """実行結果表示向けに green / purple / executor の版情報を整形する。"""
+    """Format green / purple / executor versions for result display."""
     return (
         f"G={green_agent_version or '—'} "
         f"P={purple_agent_version or '—'} "

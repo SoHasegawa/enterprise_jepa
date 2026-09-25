@@ -1,11 +1,0 @@
-Loading weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading weights: 100%|██████████| 310/310 [00:00<00:00, 5744.61it/s]
-eager call: 0.014s
-Loading weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading weights: 100%|██████████| 310/310 [00:00<00:00, 8495.76it/s]
-compiled build: 2.7s mode=reduce-overhead pad=64
-compiled call 0: 60.008s
-compiled call 1: 0.022s
-compiled call 2: 0.014s
-n values 2616 2616
-max abs diff 0.05202847719192505 mean 0.001526031524115658
-eager : [{"score": 5.945004483767789, "vetoed": false, "veto_reasons": [], "per_step": [{"step": 1, "score": 1.970874772895358, "contributions": {"execution_status": 0.8561049066483974, "progress_signal": 0.6996848195791245, "information_sufficiency": 0.4632839262485504, "error_signature": -0.022378775804691033, "side_effect_type": -0.017565703955478965, "read_after_saturation": -0.008254399820544525}}, {"step": 2, "score": 1.9892200785197243, "contributions": {"execution_status": 0.8608669526875019, "progress_signal": 0.703342416882515, "information_sufficiency": 0.466342031955719, "error_signature":
-compil: [{"score": 5.958156723614675, "vetoed": false, "veto_reasons": [], "per_step": [{"step": 1, "score": 1.970909352962557, "contributions": {"execution_status": 0.8558077067136765, "progress_signal": 0.6997051686048508, "information_sufficiency": 0.4632132649421692, "error_signature": -0.023112986446722064, "side_effect_type": -0.01708086422178894, "read_after_saturation": -0.007622936629628339}}, {"step": 2, "score": 1.9940105207960601, "contributions": {"execution_status": 0.864966943860054, "progress_signal": 0.7030166685581207, "information_sufficiency": 0.46646514534950256, "error_signature"

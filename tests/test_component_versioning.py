@@ -15,7 +15,7 @@ runner = CliRunner()
 
 @pytest.fixture(autouse=True)
 def plain_console(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Rich の ANSI 制御シーケンスを抑止する。"""
+    """Suppress Rich ANSI control sequences."""
     monkeypatch.setattr(
         cli,
         "console",
@@ -82,7 +82,7 @@ def _write_benchmark_fixture(
 
 
 def test_resolve_benchmark_component_versions_reads_component_semvers(tmp_path: Path) -> None:
-    """benchmark / green / purple / executor の semver を個別に解決できる。"""
+    """benchmark / green / purple / executor semvers resolve independently."""
     benchmark_dir = _write_benchmark_fixture(tmp_path)
 
     versions = resolve_benchmark_component_versions(
@@ -97,7 +97,7 @@ def test_resolve_benchmark_component_versions_reads_component_semvers(tmp_path: 
 
 
 def test_load_component_version_rejects_invalid_semver(tmp_path: Path) -> None:
-    """component version は semver 以外を受け付けない。"""
+    """A component version must be semver."""
     component_dir = tmp_path / "component"
     component_dir.mkdir(parents=True)
     (component_dir / "version.toml").write_text('version = "latest"\n', encoding="utf-8")
@@ -107,7 +107,7 @@ def test_load_component_version_rejects_invalid_semver(tmp_path: Path) -> None:
 
 
 def test_benchmark_show_json_includes_component_versions(tmp_path: Path) -> None:
-    """`ejepa bench show --format json` に component version を含める。"""
+    """`ejepa bench show --format json` includes the component versions."""
     assets_root = tmp_path / "assets"
     _write_benchmark_fixture(assets_root)
 
@@ -133,7 +133,7 @@ def test_benchmark_show_json_includes_component_versions(tmp_path: Path) -> None
 
 
 def test_benchmark_list_table_shows_component_versions(tmp_path: Path) -> None:
-    """`ejepa bench list` が green / purple / executor の版情報を表示する。"""
+    """`ejepa bench list` displays green / purple / executor versions."""
     assets_root = tmp_path / "assets"
     _write_benchmark_fixture(assets_root)
 

@@ -46,7 +46,7 @@ def create_message(
     text: str,
     context_id: str | None = None,
 ) -> Message:
-    """テキストだけを持つ A2A メッセージを作る。"""
+    """Build a text-only A2A message."""
     return Message(
         kind="message",
         role=role,
@@ -63,7 +63,7 @@ def create_message_with_files(
     file_payloads: list[FilePayload],
     context_id: str | None = None,
 ) -> Message:
-    """テキストと添付ファイルをまとめた A2A メッセージを作る。"""
+    """Build an A2A message carrying text plus file attachments."""
     parts = [Part(TextPart(kind="text", text=text))]
     for file_payload in file_payloads:
         parts.append(Part(FilePart(kind="file", file=file_payload)))
@@ -77,7 +77,7 @@ def create_message_with_files(
 
 
 def _stringify_data(value: Any) -> str:
-    """A2A パーツから得た値を文字列へ正規化する。"""
+    """Normalize a value taken from an A2A part into a string."""
     if isinstance(value, str):
         return value
     try:
@@ -87,7 +87,7 @@ def _stringify_data(value: Any) -> str:
 
 
 def merge_parts(parts: list[Part]) -> str:
-    """A2A の複数パーツをログしやすい 1 本の文字列へまとめる。"""
+    """Join several A2A parts into one log-friendly string."""
     chunks: list[str] = []
     for part in parts:
         if isinstance(part.root, TextPart):
@@ -100,7 +100,7 @@ def merge_parts(parts: list[Part]) -> str:
 
 
 def _append_response_text(outputs: dict[str, Any], text: str) -> None:
-    """複数の応答断片を改行区切りで結合する。"""
+    """Join response fragments with newlines."""
     if not text:
         return
     if outputs["response"]:
@@ -109,7 +109,7 @@ def _append_response_text(outputs: dict[str, Any], text: str) -> None:
 
 
 def _is_retryable_agent_card_error(exc: Exception) -> bool:
-    """agent-card 取得の一時的な通信失敗だけを再試行対象にする。"""
+    """Retry only transient transport failures while fetching an agent card."""
     if isinstance(
         exc,
         (
@@ -142,7 +142,7 @@ async def _resolve_agent_card_with_retry(
     resolver: A2ACardResolver,
     base_url: str,
 ) -> Any:
-    """agent-card 解決時の短い一時障害を吸収する。"""
+    """Absorb short transient failures while resolving an agent card."""
     last_error: Exception | None = None
     for attempt in range(1, DEFAULT_AGENT_CARD_FETCH_RETRIES + 1):
         try:
@@ -174,7 +174,7 @@ async def _resolve_agent_card_with_retry(
 
 
 def _model_dump(value: Any) -> Any:
-    """Pydantic/A2A オブジェクトを JSON 化しやすい値へ落とす。"""
+    """Reduce Pydantic/A2A objects to JSON-friendly values."""
     if value is None:
         return None
     if hasattr(value, "model_dump"):
@@ -187,7 +187,7 @@ def _model_dump(value: Any) -> Any:
 
 
 def _event_text(event: Any) -> str:
-    """trajectory で検索しやすい短い text 表現を抜き出す。"""
+    """Extract a short text representation that is easy to search in a trajectory."""
     match event:
         case Message() as message:
             return merge_parts(message.parts)
@@ -209,7 +209,7 @@ def _serialize_trajectory_event(
     direction: str,
     event: Any,
 ) -> dict[str, Any]:
-    """A2A client event を trajectory 保存用 dict へ変換する。"""
+    """Convert an A2A client event into a dict for trajectory storage."""
     record: dict[str, Any] = {
         "sequence": sequence,
         "direction": direction,
@@ -317,7 +317,7 @@ async def _send_message_impl(
     consumer: Consumer | None,
     capture_events: bool,
 ) -> dict[str, Any]:
-    """A2A クライアントの共通送信処理を実行する。"""
+    """Run the shared A2A client send path."""
     try:
         async with httpx.AsyncClient(timeout=DEFAULT_TIMEOUT) as httpx_client:
             resolver = A2ACardResolver(httpx_client=httpx_client, base_url=base_url)
@@ -335,7 +335,7 @@ async def _send_message_impl(
             _apply_last_event_outputs(outputs, last_event)
             return outputs
     except Exception as exc:
-        LOGGER.error("A2A 通信失敗: %s", exc)
+        LOGGER.error("A2A request failed: %s", exc)
         raise RuntimeError(f"Error communicating with agent at {base_url}: {exc}") from exc
 
 
@@ -347,7 +347,7 @@ async def send_message(
     consumer: Consumer | None = None,
     capture_events: bool = False,
 ) -> dict[str, Any]:
-    """テキストだけを送って A2A 応答を受け取る。"""
+    """Send text only and return the A2A response."""
     outbound_message = create_message(text=message, context_id=context_id)
     return await _send_message_impl(
         outbound_message=outbound_message,
@@ -367,7 +367,7 @@ async def send_message_with_files(
     consumer: Consumer | None = None,
     capture_events: bool = False,
 ) -> dict[str, Any]:
-    """添付ファイル付きで A2A 応答を受け取る。"""
+    """Send text with attachments and return the A2A response."""
     outbound_message = create_message_with_files(
         text=message,
         file_payloads=file_payloads,

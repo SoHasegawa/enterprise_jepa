@@ -8,7 +8,7 @@ import uvicorn
 
 
 def reserve_tcp_listener(host: str, port: int) -> tuple[socket.socket, int]:
-    """指定 host/port 用の listening socket を事前確保する。"""
+    """Reserve a listening socket for the given host/port up front."""
     last_error: OSError | None = None
     for family, socktype, proto, _, sockaddr in socket.getaddrinfo(
         host,
@@ -37,7 +37,7 @@ def reserve_tcp_listener(host: str, port: int) -> tuple[socket.socket, int]:
 
 
 def write_port_file(port_file: Path | None, port: int) -> None:
-    """起動に使う port をファイルへ書き出す。"""
+    """Write the port actually bound to a file."""
     if port_file is None:
         return
     port_file.parent.mkdir(parents=True, exist_ok=True)
@@ -51,6 +51,6 @@ def run_uvicorn_with_socket(
     port: int,
     listener: socket.socket,
 ) -> None:
-    """事前確保した socket を使って uvicorn を起動する。"""
+    """Start uvicorn on the pre-reserved socket."""
     config = uvicorn.Config(app, host=host, port=port)
     uvicorn.Server(config).run(sockets=[listener])

@@ -4,7 +4,7 @@ import sys
 
 
 def configure_logging() -> None:
-    """標準出力向けの簡易ロギング設定を初期化する。"""
+    """Initialize simple stdout logging."""
     level_name = os.getenv("BENCHMARK_LOG_LEVEL", "INFO").upper()
     level = getattr(logging, level_name, logging.INFO)
     logging.basicConfig(
@@ -16,7 +16,7 @@ def configure_logging() -> None:
 
 
 def get_logger(name: str) -> logging.Logger:
-    """共通設定済みのロガーを返す。"""
+    """Return a logger with the shared configuration applied."""
     if not logging.getLogger().handlers:
         configure_logging()
     return logging.getLogger(name)

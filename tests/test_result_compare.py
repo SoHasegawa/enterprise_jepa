@@ -16,7 +16,7 @@ runner = CliRunner()
 
 @pytest.fixture(autouse=True)
 def plain_console(monkeypatch: pytest.MonkeyPatch) -> None:
-    """Rich の ANSI 制御シーケンスを抑止する。"""
+    """Suppress Rich ANSI control sequences."""
     monkeypatch.setattr(
         cli,
         "console",
@@ -38,7 +38,7 @@ def _write_manifest(
     target: str = "hope",
     user_name: str = "tester",
 ) -> Path:
-    """compare 用の最小 manifest.json と detail.json を書く。"""
+    """Write the minimal manifest.json and detail.json that compare needs."""
     config_hash = run_id.split("-")[-1]
     result_paths = build_execution_identity(
         benchmark_name=benchmark_name,
@@ -105,7 +105,7 @@ def _write_manifest(
 
 
 def test_result_store_builds_user_scoped_directory_name(tmp_path: Path) -> None:
-    """run ディレクトリ名にユーザー名を含める。"""
+    """The run directory name includes the user name."""
     paths = build_execution_identity(
         benchmark_name="TDI-AgenticSearch",
         executor_name="doc_search",
@@ -122,7 +122,7 @@ def test_result_store_builds_user_scoped_directory_name(tmp_path: Path) -> None:
 
 
 def test_result_list_shows_user_name_column(tmp_path: Path) -> None:
-    """`ejepa result list` が実行ユーザー名を表示する。"""
+    """`ejepa result list` shows the user who ran it."""
     result_root = tmp_path / "experiments"
     _write_manifest(
         result_root,
@@ -149,7 +149,7 @@ def test_result_list_shows_user_name_column(tmp_path: Path) -> None:
 
 
 def test_result_show_displays_component_versions(tmp_path: Path) -> None:
-    """`ejepa result show` が green / purple / executor の版情報を表示する。"""
+    """`ejepa result show` displays green / purple / executor versions."""
     result_root = tmp_path / "experiments"
     run_id = "20260420T000018Z-ccccbbbbbbbb"
     _write_manifest(
@@ -182,7 +182,7 @@ def test_result_show_displays_component_versions(tmp_path: Path) -> None:
 
 
 def test_result_compare_outputs_pass_fail_matrix_and_pass_at_k(tmp_path: Path) -> None:
-    """複数 run の PASS/FAIL 行列と PASS@k が JSON に出ることを確認する。"""
+    """The PASS/FAIL matrix over several runs and PASS@k appear in the JSON."""
     result_root = tmp_path / "experiments"
     run_id_1 = "20260420T000001Z-aaaaaaaaaaaa"
     run_id_2 = "20260420T000002Z-bbbbbbbbbbbb"
@@ -240,7 +240,7 @@ def test_result_compare_outputs_pass_fail_matrix_and_pass_at_k(tmp_path: Path) -
 
 
 def test_result_compare_honors_pass_threshold(tmp_path: Path) -> None:
-    """`--pass-threshold` で PASS/FAIL 判定が切り替わることを確認する。"""
+    """`--pass-threshold` switches the PASS/FAIL decision."""
     result_root = tmp_path / "experiments"
     run_id_1 = "20260420T000003Z-cccccccccccc"
     run_id_2 = "20260420T000004Z-dddddddddddd"
@@ -285,7 +285,7 @@ def test_result_compare_honors_pass_threshold(tmp_path: Path) -> None:
 
 
 def test_result_compare_rejects_mixed_targets(tmp_path: Path) -> None:
-    """target が異なる run を混ぜた compare を弾くことを確認する。"""
+    """Comparing runs with different targets is rejected."""
     result_root = tmp_path / "experiments"
     run_id_1 = "20260420T000005Z-eeeeeeeeeeee"
     run_id_2 = "20260420T000006Z-ffffffffffff"
@@ -325,7 +325,7 @@ def test_result_compare_rejects_mixed_targets(tmp_path: Path) -> None:
 
 
 def test_result_compare_can_select_runs_by_query(tmp_path: Path) -> None:
-    """query 指定だけで比較対象 run 群を選べることを確認する。"""
+    """A query alone can select the set of runs to compare."""
     result_root = tmp_path / "experiments"
     run_id_1 = "20260420T000010Z-444444444444"
     run_id_2 = "20260420T000011Z-555555555555"
@@ -376,7 +376,7 @@ def test_result_compare_can_select_runs_by_query(tmp_path: Path) -> None:
 
 
 def test_result_pass_at_k_outputs_summary_json(tmp_path: Path) -> None:
-    """専用コマンドが PASS@k 要約だけを JSON で返すことを確認する。"""
+    """The dedicated command returns only the PASS@k summary as JSON."""
     result_root = tmp_path / "experiments"
     run_id_1 = "20260420T000007Z-111111111111"
     run_id_2 = "20260420T000008Z-222222222222"
@@ -427,7 +427,7 @@ def test_result_pass_at_k_outputs_summary_json(tmp_path: Path) -> None:
 def test_result_pass_at_k_can_select_runs_by_filters_without_duplicates(
     tmp_path: Path,
 ) -> None:
-    """条件指定と識別子指定を併用しても run が重複しないことを確認する。"""
+    """Mixing filters and explicit identifiers does not duplicate runs."""
     result_root = tmp_path / "experiments"
     run_id_1 = "20260420T000013Z-777777777777"
     run_id_2 = "20260420T000014Z-888888888888"
@@ -490,7 +490,7 @@ def test_result_pass_at_k_can_select_runs_by_filters_without_duplicates(
 
 
 def test_result_pass_at_k_allows_single_run(tmp_path: Path) -> None:
-    """専用コマンドは 1 run だけでも PASS@1 を計算できることを確認する。"""
+    """The dedicated command computes PASS@1 even from a single run."""
     result_root = tmp_path / "experiments"
     run_id = "20260420T000009Z-333333333333"
     _write_manifest(

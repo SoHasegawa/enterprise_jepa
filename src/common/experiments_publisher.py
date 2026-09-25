@@ -1,10 +1,10 @@
 """
 experiments_publisher.py
 ~~~~~~~~~~~~~~~~~~~~~~~~
-BenchmarkRunManifest + detail.json を experiments リポジトリ形式へ変換し、
-指定ディレクトリへ書き出すユーティリティ。
+Convert a BenchmarkRunManifest plus detail.json into the experiments-repository
+layout and write it to a given directory.
 
-使用例::
+Example::
 
     from common.experiments_publisher import publish_to_experiments
     from common.result_store import load_result_manifest
@@ -33,9 +33,9 @@ from common.models import BenchmarkRunManifest
 
 
 def _run_dir_name(manifest: BenchmarkRunManifest) -> str:
-    """experiments/evaluation/<Benchmark>/ 配下のディレクトリ名を生成する。
+    """Build the directory name under experiments/evaluation/<Benchmark>/.
 
-    形式: <YYYYMMDD>_<executor_slug>_<model_slug>
+    Format: <YYYYMMDD>_<executor_slug>_<model_slug>
     """
     date_str = manifest.created_at_utc.strftime("%Y%m%d")
     executor_slug = _slug(manifest.executor_name, max_length=24)
@@ -51,7 +51,7 @@ def _slug(value: str, *, max_length: int = 48) -> str:
 
 
 def _build_results_json(manifest: BenchmarkRunManifest, detail: dict[str, Any]) -> dict:
-    """results/results.json の内容を組み立てる。"""
+    """Assemble the contents of results/results.json."""
     task_results: list[dict] = detail.get("task_results") or manifest.eval_result.task_results
     resolved: list[str] = []
     unresolved: list[str] = []
@@ -84,14 +84,14 @@ def _build_results_json(manifest: BenchmarkRunManifest, detail: dict[str, Any]) 
 
 
 def _build_resolved_by_repo(results_json: dict) -> dict:
-    """results/resolved_by_repo.json の内容を組み立てる。
+    """Assemble the contents of results/resolved_by_repo.json.
 
-    task_id の形式 "org__repo-NNNNN" を "org/repo" へ変換して集計する。
+    Task ids of the form "org__repo-NNNNN" are folded into "org/repo" before counting.
     """
     counts: dict[str, dict[str, int]] = {}
 
     def _to_repo(task_id: str) -> str:
-        # SWE-bench 形式: "django__django-12345" → "django/django"
+        # SWE-bench form: "django__django-12345" -> "django/django"
         if "__" in task_id:
             parts = task_id.split("__", 1)
             repo_issue = parts[1].rsplit("-", 1)
@@ -118,7 +118,7 @@ def _build_metadata_yaml(
     org: str,
     extra_info: dict | None = None,
 ) -> str:
-    """metadata.yaml の文字列を生成する。"""
+    """Render the metadata.yaml text."""
     info = extra_info or {}
     agent_image = (
         info.get("agent_image")
@@ -164,7 +164,7 @@ def _build_metadata_yaml(
 
 
 def _build_readme(manifest: BenchmarkRunManifest, results: dict, agent_readme: str | None) -> str:
-    """run ディレクトリの README.md を生成する。"""
+    """Render the README.md for a run directory."""
     if agent_readme:
         return agent_readme
 
@@ -204,20 +204,20 @@ def publish_to_experiments(
     extra_info: dict | None = None,
     run_dir_name: str | None = None,
 ) -> Path:
-    """BenchmarkRunManifest を experiments リポジトリ形式へ変換して書き出す。
+    """Convert a BenchmarkRunManifest into the experiments-repository layout and write it.
 
     Args:
-        manifest: ``result_store.load_result_manifest()`` で読み込んだ manifest。
-        detail: ``detail.json`` の dict（task_results リストを含む）。
-        experiments_root: experiments リポジトリのルートディレクトリ。
-        submitted_by: metadata.yaml の ``info.submitted_by`` に設定するユーザー/組織名。
-        org: metadata.yaml の ``tags.org`` に設定する組織名。
-        agent_readme: README.md のカスタム内容（None の場合は自動生成）。
-        extra_info: metadata.yaml の ``info`` セクションに追加する dict。
-        run_dir_name: 実行ディレクトリ名を上書きする場合に指定。
+        manifest: manifest loaded by ``result_store.load_result_manifest()``.
+        detail: the ``detail.json`` dict, including its task_results list.
+        experiments_root: root directory of the experiments repository.
+        submitted_by: user or organization written to ``info.submitted_by`` in metadata.yaml.
+        org: organization written to ``tags.org`` in metadata.yaml.
+        agent_readme: custom README.md body; generated automatically when None.
+        extra_info: extra keys added to the ``info`` section of metadata.yaml.
+        run_dir_name: overrides the run directory name.
 
     Returns:
-        書き出した run ディレクトリの Path。
+        Path of the run directory that was written.
     """
     experiments_root = Path(experiments_root).resolve()
     benchmark_dir = experiments_root / "evaluation" / manifest.benchmark_name

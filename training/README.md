@@ -23,8 +23,5 @@ cd training && uv sync
 | `src/itp/` | The adaptive-k controller used by the ITP-I harness |
 | `scripts/` | Wrappers for k-controller training and ReAct world-model evaluation |
 
-`README_ewm_upstream.md` is the upstream repository's own README, kept for its dataset and
-preset notes. Its paths are relative to that repository, not this one.
-
 Neither the trajectory corpus nor any checkpoint is tracked here; `training/trajectories/`
 and `training/data/*.jsonl` are gitignored.

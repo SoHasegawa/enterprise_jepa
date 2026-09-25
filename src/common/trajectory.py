@@ -16,7 +16,7 @@ _SENSITIVE_KEY_PATTERN = re.compile(
 
 
 def capture_trajectory_enabled(config: Mapping[str, Any] | None) -> bool:
-    """request config / env から trajectory 保存の有効化を判定する。"""
+    """Decide from the request config / env whether trajectory capture is on."""
     values = []
     if config:
         values.extend(
@@ -39,12 +39,12 @@ def capture_trajectory_enabled(config: Mapping[str, Any] | None) -> bool:
 
 
 def trajectory_root_for_result(result_dir: Path) -> Path:
-    """1 run 分の trajectory 保存先ディレクトリを返す。"""
+    """Return the trajectory directory for one run."""
     return result_dir / DEFAULT_TRAJECTORY_DIR_NAME
 
 
 def max_text_chars() -> int:
-    """trajectory に保存する 1 文字列あたりの最大長。"""
+    """Maximum length of a single string stored in a trajectory."""
     raw = os.getenv("BENCHMARK_TRAJECTORY_MAX_TEXT_CHARS", "16000")
     try:
         parsed = int(raw)
@@ -71,7 +71,7 @@ def _redact_trajectory_text(value: str, *, limit: int) -> str:
 
 
 def redact_trajectory_payload(value: Any, *, max_chars: int | None = None) -> Any:
-    """trajectory 用 payload から secret と巨大文字列を取り除く。"""
+    """Strip secrets and oversized strings from a trajectory payload."""
     limit = max_chars if max_chars is not None else max_text_chars()
     if isinstance(value, Mapping):
         redacted: dict[str, Any] = {}
@@ -98,7 +98,7 @@ def write_task_trajectory(
     events: list[Mapping[str, Any]],
     label: str | None = None,
 ) -> Path | None:
-    """1 task の trajectory events を JSON Lines で保存する。"""
+    """Write one task's trajectory events as JSON Lines."""
     if not events:
         return None
 
@@ -121,7 +121,7 @@ def build_trajectory_capture_summary(
     enabled: bool,
     trajectory_root: Path | None,
 ) -> dict[str, Any]:
-    """detail.json に入れる trajectory capture の設定サマリ。"""
+    """Trajectory-capture settings summary embedded in detail.json."""
     return {
         "enabled": enabled,
         "format": "jsonl",

@@ -1,1 +1,1 @@
-"""ローカル実行 CLI — benchmark tooling."""
+"""Local benchmark-runner CLI."""

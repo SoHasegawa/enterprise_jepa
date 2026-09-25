@@ -81,7 +81,7 @@ PASS_AT_K_LABEL = "PASS@k"
 
 
 def _load_cli_version_from_pyproject() -> str | None:
-    """repo root の pyproject.toml から CLI version を読む。"""
+    """Read the CLI version from the repo root's pyproject.toml."""
     if not PYPROJECT_PATH.exists():
         return None
 
@@ -101,12 +101,12 @@ def _load_cli_version_from_pyproject() -> str | None:
 
 
 def _resolve_cli_version() -> str:
-    """`ejepa --version` で表示する CLI version を解決する。"""
+    """Resolve the CLI version shown by `ejepa --version`."""
     return _load_cli_version_from_pyproject() or "unknown"
 
 
 def _version_callback(value: bool) -> None:
-    """`--version` が指定されたら version を表示して終了する。"""
+    """Print the version and exit when `--version` is given."""
     if not value:
         return
     typer.echo(_resolve_cli_version())
@@ -114,14 +114,14 @@ def _version_callback(value: bool) -> None:
 
 
 class OutputFormat(str, Enum):
-    """CLI 出力形式。"""
+    """CLI output format."""
 
     table = "table"
     json = "json"
 
 
 class ResultStatusFilter(str, Enum):
-    """結果一覧で使う status フィルタ。"""
+    """Status filter used by the result list."""
 
     all = "all"
     completed = "completed"
@@ -129,7 +129,7 @@ class ResultStatusFilter(str, Enum):
 
 
 class ExecutionLauncher(str, Enum):
-    """`bench run` の実行経路。"""
+    """Execution route for `bench run`."""
 
     local = "local"
     slurm = "slurm"
@@ -137,7 +137,7 @@ class ExecutionLauncher(str, Enum):
 
 @dataclass(slots=True)
 class AppState:
-    """CLI 全体で共有するルートパス。"""
+    """Root paths shared across the CLI."""
 
     assets_root: Path
     result_root: Path
@@ -145,7 +145,7 @@ class AppState:
 
 @dataclass(slots=True)
 class BenchmarkRecord:
-    """`benchmark.toml` から引いたベンチマーク要約。"""
+    """Benchmark summary read from `benchmark.toml`."""
 
     name: str
     version: str | None
@@ -185,7 +185,7 @@ class BenchmarkRecord:
 
 @dataclass(slots=True)
 class SlurmSubmissionResult:
-    """Slurm 送信の実行結果。"""
+    """Result of a Slurm submission."""
 
     command: list[str]
     script_path: Path
@@ -196,7 +196,7 @@ class SlurmSubmissionResult:
 
 @dataclass(slots=True)
 class RuntimeConfigOverrides:
-    """`bench run` の benchmark config 上書き指定。"""
+    """Benchmark-config overrides for `bench run`."""
 
     target: str | None
     config_overrides: list[str] | None
@@ -211,7 +211,7 @@ class RuntimeConfigOverrides:
 
 @dataclass(slots=True)
 class SlurmOptions:
-    """`sbatch` へ渡す任意 option 群。"""
+    """Optional arguments passed to `sbatch`."""
 
     partition: str | None
     job_name: str | None
@@ -229,7 +229,7 @@ class SlurmOptions:
 
 @dataclass(slots=True)
 class BenchmarkRunContext:
-    """`bench run` の実行前に解決済みの共通情報。"""
+    """Shared state resolved before `bench run` executes."""
 
     state: AppState
     record: BenchmarkRecord
@@ -246,7 +246,7 @@ class BenchmarkRunContext:
 
 @dataclass(slots=True)
 class AgentLaunchSpec:
-    """local launcher で解決する agent endpoint 指定。"""
+    """Agent endpoint resolved by the local launcher."""
 
     config: Mapping[str, Any]
     label: str
@@ -256,7 +256,7 @@ class AgentLaunchSpec:
 
 @dataclass(slots=True)
 class ProcessEnvConfig:
-    """benchmark subprocess に渡す環境変数の入力値。"""
+    """Inputs for the environment passed to a benchmark subprocess."""
 
     benchmark_name: str
     benchmark_version: str | None
@@ -274,12 +274,12 @@ class ProcessEnvConfig:
 
 app = typer.Typer(
     name="ejepa",
-    help="ベンチマーク定義の閲覧と実行、結果探索を行う CLI。",
+    help="CLI to browse and run benchmark definitions and explore their results.",
     no_args_is_help=True,
     rich_markup_mode="rich",
 )
-benchmark_app = typer.Typer(no_args_is_help=True, help="ベンチマーク定義の一覧・検索・実行")
-result_app = typer.Typer(no_args_is_help=True, help="保存済み結果の一覧・検索・詳細表示")
+benchmark_app = typer.Typer(no_args_is_help=True, help="List, search and run benchmark definitions")
+result_app = typer.Typer(no_args_is_help=True, help="List, search and inspect saved results")
 app.add_typer(benchmark_app, name="bench")
 app.add_typer(benchmark_app, name="benchmark")
 app.add_typer(result_app, name="result")
@@ -294,14 +294,14 @@ def main_callback(
             "--version",
             callback=_version_callback,
             is_eager=True,
-            help="pyproject.toml に記載された CLI version を表示する。",
+            help="Show the CLI version recorded in pyproject.toml.",
         ),
     ] = False,
     assets_root: Annotated[
         Path,
         typer.Option(
             "--assets-root",
-            help="ベンチマーク asset を探索するルートディレクトリ。",
+            help="Root directory scanned for benchmark assets.",
             file_okay=False,
             dir_okay=True,
             resolve_path=False,
@@ -311,14 +311,14 @@ def main_callback(
         Path,
         typer.Option(
             "--result-root",
-            help="Green Agent が結果を書き出すルートディレクトリ。",
+            help="Root directory the Green agent writes results to.",
             file_okay=False,
             dir_okay=True,
             resolve_path=False,
         ),
     ] = DEFAULT_RESULT_ROOT,
 ) -> None:
-    """ルートオプションを保持する。"""
+    """Hold the root options."""
     ctx.obj = AppState(
         assets_root=assets_root.expanduser().resolve(),
         result_root=result_root.expanduser().resolve(),
@@ -326,19 +326,19 @@ def main_callback(
 
 
 def _state_from_ctx(ctx: typer.Context) -> AppState:
-    """Typer context から共有状態を取り出す。"""
+    """Pull the shared state out of the Typer context."""
     if not isinstance(ctx.obj, AppState):
         raise RuntimeError("CLI state is not initialized")
     return ctx.obj
 
 
 def _json_dumps(value: Any) -> str:
-    """Path を含む値も JSON 表示しやすく整形する。"""
+    """Format values, including Paths, for JSON display."""
     return json.dumps(value, ensure_ascii=False, indent=2, default=str)
 
 
 def _relative_path_text(path: Path, root: Path) -> str:
-    """root 配下なら相対パス、それ以外は絶対パスで返す。"""
+    """Return a relative path under root, otherwise an absolute one."""
     try:
         return str(path.relative_to(root))
     except ValueError:
@@ -346,7 +346,7 @@ def _relative_path_text(path: Path, root: Path) -> str:
 
 
 def _load_benchmark_config(assets_root: Path, benchmark_name: str) -> tuple[Path, dict[str, Any]]:
-    """ベンチマーク設定ファイルを読み込む。"""
+    """Load a benchmark configuration file."""
     benchmark_dir = assets_root / benchmark_name
     config_path = benchmark_dir / "benchmark.toml"
     if not config_path.exists():
@@ -357,7 +357,7 @@ def _load_benchmark_config(assets_root: Path, benchmark_name: str) -> tuple[Path
 
 
 def _load_task_counts(benchmark_dir: Path) -> dict[str, int]:
-    """`green/tasks/task_ids.toml` があれば target ごとの件数を読む。"""
+    """Read per-target task counts from `green/tasks/task_ids.toml` when present."""
     task_ids_path = benchmark_dir / "green" / "tasks" / "task_ids.toml"
     if not task_ids_path.exists():
         return {}
@@ -371,7 +371,7 @@ def _load_task_counts(benchmark_dir: Path) -> dict[str, int]:
 
 
 def _load_declared_targets(raw_config: dict[str, Any]) -> list[str]:
-    """`benchmark.toml` 上で明示宣言された target 名を読む。"""
+    """Read the target names declared explicitly in `benchmark.toml`."""
     raw_metadata = raw_config.get("benchmark_metadata")
     if not isinstance(raw_metadata, dict):
         return []
@@ -426,7 +426,7 @@ def _ordered_executors(discovered: set[str], default_executor: Any) -> list[str]
 
 
 def _discover_available_executors(benchmark_dir: Path, raw_config: dict[str, Any]) -> list[str]:
-    """`bench run --executor` で選べる executor 名を集約する。"""
+    """Collect the executor names selectable with `bench run --executor`."""
     discovered = _discover_purple_executor_dirs(benchmark_dir)
     discovered.update(_discover_slurm_executors(raw_config))
 
@@ -505,7 +505,7 @@ def _benchmark_record_from_config(
 
 
 def _discover_benchmarks(assets_root: Path) -> list[BenchmarkRecord]:
-    """assets 配下の `benchmark.toml` を走査する。"""
+    """Scan for `benchmark.toml` files under assets/."""
     if not assets_root.exists():
         raise FileNotFoundError(f"assets root not found: {assets_root}")
 
@@ -523,7 +523,7 @@ def _discover_benchmarks(assets_root: Path) -> list[BenchmarkRecord]:
 
 
 def _benchmark_search_blob(record: BenchmarkRecord) -> str:
-    """検索しやすいように主要フィールドを 1 行へ畳み込む。"""
+    """Fold the main fields into one line for searching."""
     values = [
         record.name,
         record.version or "",
@@ -542,7 +542,7 @@ def _benchmark_search_blob(record: BenchmarkRecord) -> str:
 def _filter_benchmarks(
     records: Iterable[BenchmarkRecord], query: str | None
 ) -> list[BenchmarkRecord]:
-    """クエリ指定があればベンチマーク一覧を絞り込む。"""
+    """Filter the benchmark list when a query is given."""
     if not query:
         return list(records)
     normalized_query = query.lower()
@@ -550,7 +550,7 @@ def _filter_benchmarks(
 
 
 def _resolve_benchmark(records: list[BenchmarkRecord], name: str) -> BenchmarkRecord:
-    """名前またはディレクトリ名からベンチマークを 1 件解決する。"""
+    """Resolve exactly one benchmark from a name or directory name."""
     lowered = name.lower()
     exact_matches = [
         record
@@ -575,7 +575,7 @@ def _resolve_benchmark(records: list[BenchmarkRecord], name: str) -> BenchmarkRe
 
 
 def _targets_summary(record: BenchmarkRecord) -> str:
-    """target と件数を簡潔に表す。"""
+    """Render targets and their task counts compactly."""
     if not record.targets:
         return "—"
     labels: list[str] = []
@@ -594,7 +594,7 @@ def _executor_label(record: BenchmarkRecord) -> str:
 
 
 def _render_benchmark_table(records: list[BenchmarkRecord], assets_root: Path) -> None:
-    """ベンチマーク一覧を表形式で表示する。"""
+    """Render the benchmark list as a table."""
     table = Table(show_header=True, header_style=TABLE_HEADER_STYLE)
     table.add_column("Benchmark")
     table.add_column("Version")
@@ -625,19 +625,19 @@ def _render_benchmark_table(records: list[BenchmarkRecord], assets_root: Path) -
 
 
 def _build_endpoint(host: str, port: int) -> str:
-    """ホストとポートから HTTP エンドポイントを組み立てる。"""
+    """Build an HTTP endpoint from a host and port."""
     return f"http://{host}:{port}"
 
 
 def _should_start_agent_process(host: str, port: int) -> bool:
-    """local bind address なら agent subprocess を起動し、remote endpoint なら既存 service を使う。"""
+    """Start an agent subprocess for a local bind address; use the existing service for a remote endpoint."""
     normalized_host = host.strip().lower()
     local_hosts = {"", "127.0.0.1", "localhost", "0.0.0.0", "::1", "::"}
     return port == 0 or normalized_host in local_hosts
 
 
 def _parse_config_override(raw_override: str) -> tuple[str, Any]:
-    """`--config key=value` を request config へ入れる値に変換する。"""
+    """Convert `--config key=value` into a value for the request config."""
     if "=" not in raw_override:
         raise ValueError(f"--config must be KEY=VALUE: {raw_override}")
     key, raw_value = raw_override.split("=", 1)
@@ -695,7 +695,7 @@ def _build_runtime_config(
     *,
     overrides: RuntimeConfigOverrides,
 ) -> dict[str, Any]:
-    """設定ファイルと CLI 上書きを統合した実行時設定を作る。"""
+    """Build the runtime config by merging the config file with CLI overrides."""
     green_config = dict(raw_config.get("green_agent", {}))
     if not green_config:
         raise ValueError("green_agent is required in benchmark.toml")
@@ -743,7 +743,7 @@ def _attach_runtime_green_endpoint(
 
 
 def _build_process_env(config: ProcessEnvConfig) -> dict[str, str]:
-    """子プロセスへ渡す環境変数を整える。"""
+    """Assemble the environment passed to child processes."""
     env = os.environ.copy()
     ensure_no_proxy(
         env,
@@ -773,7 +773,7 @@ def _build_process_env(config: ProcessEnvConfig) -> dict[str, str]:
 
 
 def _resolve_project_python(project_dir: Path) -> Path | None:
-    """uv 既定の `.venv` にある Python 実行ファイルを返す。"""
+    """Return the Python executable in uv's default `.venv`."""
     candidates = [
         project_dir / ".venv" / "bin" / "python",
         project_dir / ".venv" / "Scripts" / "python.exe",
@@ -785,7 +785,7 @@ def _resolve_project_python(project_dir: Path) -> Path | None:
 
 
 def _install_hint_for_project(project_dir: Path) -> str:
-    """project path に対応する install helper を返す。"""
+    """Return the install helper for a project path."""
     try:
         relative = project_dir.resolve().relative_to(REPO_ROOT).as_posix()
     except ValueError:
@@ -837,7 +837,7 @@ def _resolve_entrypoint_python(
     benchmark_dir: Path,
     override_env_names: list[str],
 ) -> str:
-    """entrypoint に最も近い uv project の Python を解決する。"""
+    """Resolve the Python of the uv project closest to the entrypoint."""
     override_python = _resolve_override_python(override_env_names)
     if override_python is not None:
         return override_python
@@ -864,7 +864,7 @@ def _build_agent_command(
     *,
     port_file: Path | None = None,
 ) -> list[str]:
-    """Agent サーバー起動コマンドを組み立てる。"""
+    """Build the command that starts an agent server."""
     command = [python_executable, str(entrypoint), "--host", host, "--port", str(port)]
     if port_file is not None:
         command.extend(["--port-file", str(port_file)])
@@ -872,7 +872,7 @@ def _build_agent_command(
 
 
 def _agent_port_file(result_dir: Path, agent_label: str) -> Path:
-    """動的割り当て port の受け渡しファイルパスを返す。"""
+    """Return the handoff file path for a dynamically assigned port."""
     safe_label = (
         "".join(
             char if char.isascii() and (char.isalnum() or char in {"-", "_"}) else "_"
@@ -904,7 +904,7 @@ def _resolve_actual_agent_port(
     timeout_seconds: int,
     agent_label: str,
 ) -> int:
-    """固定 port または port file から実際の待受 port を解決する。"""
+    """Resolve the actual listening port from a fixed port or the port file."""
     if requested_port > 0:
         return requested_port
     if port_file is None:
@@ -988,7 +988,7 @@ def _resolve_slurm_run_script(
     benchmark_dir: Path,
     raw_config: dict[str, Any] | None = None,
 ) -> Path:
-    """benchmark 設定付き sbatch script、または共通 wrapper を返す。"""
+    """Return the benchmark's own sbatch script, or the shared wrapper."""
     del benchmark_name
 
     script_path = _resolve_script_path(
@@ -1007,7 +1007,7 @@ def _build_slurm_passthrough_args(
     show_logs: bool,
     serve_only: bool,
 ) -> list[str]:
-    """組み込み sbatch script へ渡す `ejepa bench run` 引数を返す。"""
+    """Return the `ejepa bench run` arguments passed to the bundled sbatch script."""
     args = [
         "--workdir",
         str(workdir),
@@ -1056,7 +1056,7 @@ def _build_sbatch_command(
     script_args: list[str],
     slurm_options: SlurmOptions,
 ) -> list[str]:
-    """`sbatch` 実行コマンドを組み立てる。"""
+    """Build the `sbatch` command line."""
     command = [sbatch_bin, "--parsable"]
 
     def add_option(flag: str, value: str | int | None) -> None:
@@ -1084,7 +1084,7 @@ def _build_sbatch_command(
 
 
 def _parse_sbatch_job_id(stdout: str) -> str | None:
-    """`sbatch --parsable` 出力から job id を抜き出す。"""
+    """Extract the job id from `sbatch --parsable` output."""
     stripped = stdout.strip()
     if not stripped:
         return None
@@ -1104,7 +1104,7 @@ def _submit_benchmark_run_via_slurm(
     run_context: BenchmarkRunContext,
     slurm_options: SlurmOptions,
 ) -> SlurmSubmissionResult:
-    """benchmark 設定付き、または共通 sbatch wrapper で Slurm へ送信する。"""
+    """Submit to Slurm with the benchmark's own script or the shared sbatch wrapper."""
     sbatch_bin = shutil.which("sbatch")
     if sbatch_bin is None:
         raise FileNotFoundError("sbatch not found in PATH.")
@@ -1169,7 +1169,7 @@ def _start_agent_process(
     env: dict[str, str],
     show_logs: bool,
 ) -> subprocess.Popen[str]:
-    """Agent サーバーを子プロセスとして起動する。"""
+    """Start an agent server as a child process."""
     sink = None if show_logs else subprocess.DEVNULL
     process_env = env.copy()
     ensure_no_proxy(process_env)
@@ -1205,7 +1205,7 @@ def _signal_live_processes(processes: list[subprocess.Popen[str]], sig: signal.S
 
 
 def _terminate_processes(processes: list[subprocess.Popen[str]]) -> None:
-    """起動した子プロセスを順に停止する。"""
+    """Stop the started child processes in order."""
     grace_seconds = float(os.getenv("BENCHMARK_PROCESS_TERM_GRACE_SECONDS", "10"))
     _signal_live_processes(processes, signal.SIGTERM)
 
@@ -1219,7 +1219,7 @@ def _terminate_processes(processes: list[subprocess.Popen[str]]) -> None:
 
 
 def _merge_text_parts(parts: list[Any]) -> str:
-    """イベントのパーツを読みやすい文字列へ整形する。"""
+    """Format event parts into a readable string."""
     from a2a.types import DataPart, TextPart
 
     text_parts: list[str] = []
@@ -1238,7 +1238,7 @@ def _merge_text_parts(parts: list[Any]) -> str:
 
 
 async def _is_endpoint_ready(endpoint: str) -> bool:
-    """A2A の AgentCard が取得できるかで起動完了を判定する。"""
+    """Treat a fetchable A2A AgentCard as the readiness signal."""
     import httpx
     from a2a.client import A2ACardResolver
 
@@ -1252,7 +1252,7 @@ async def _is_endpoint_ready(endpoint: str) -> bool:
 
 
 def _format_process_exit(process: subprocess.Popen[str]) -> str:
-    """ready 待ち中に落ちた子プロセスの情報を整形する。"""
+    """Format information about a child process that died while waiting for readiness."""
     args = process.args
     command = " ".join(str(part) for part in args) if isinstance(args, (list, tuple)) else str(args)
     return f"pid={process.pid} exit_code={process.returncode} command={command}"
@@ -1264,7 +1264,7 @@ async def _wait_for_agents(
     *,
     processes: list[subprocess.Popen[str]] | None = None,
 ) -> bool:
-    """全エージェントの起動完了を待つ。"""
+    """Wait until every agent is ready."""
     start_time = time.time()
     while time.time() - start_time < timeout:
         if processes:
@@ -1316,7 +1316,7 @@ def _log_client_stream_event(
 
 
 async def _run_client(eval_request: Any, green_endpoint: str) -> dict[str, Any]:
-    """Green Agent へ評価要求を送り、最終応答を受け取る。"""
+    """Send the evaluation request to the Green agent and take the final response."""
     from a2a.types import (
         AgentCard,
         Message,
@@ -1344,7 +1344,7 @@ async def _run_client(eval_request: Any, green_endpoint: str) -> dict[str, Any]:
 
 
 def _load_result_manifests(result_root: Path) -> list[Any]:
-    """結果 manifest を読み込み、完了時刻降順で返す。"""
+    """Load result manifests, newest completion first."""
     from common.result_store import iter_result_manifest_paths, load_result_manifest
 
     manifests: list[Any] = []
@@ -1366,7 +1366,7 @@ def _filter_result_manifests(
     executor_name: str | None = None,
     target: str | None = None,
 ) -> list[Any]:
-    """検索語と属性で結果一覧を絞り込む。"""
+    """Filter the result list by search term and attributes."""
     from common.result_store import build_manifest_search_blob
 
     normalized_query = query.lower() if query else None
@@ -1414,14 +1414,14 @@ def _has_result_selection_filters(
     executor_name: str | None,
     target: str | None,
 ) -> bool:
-    """result 選択用の filter option が 1 つでも指定されたか判定する。"""
+    """Whether any result-selection filter option was given."""
     return bool(
         query or benchmark_name or executor_name or target or status is not ResultStatusFilter.all
     )
 
 
 def _resolve_result_identifier(identifier: str, result_root: Path, manifests: list[Any]) -> Any:
-    """run_id またはファイルパスから結果 manifest を 1 件解決する。"""
+    """Resolve one result manifest from a run_id or a file path."""
     from common.result_store import load_result_manifest
 
     candidate_path = Path(identifier).expanduser()
@@ -1475,7 +1475,7 @@ def _select_result_manifests(
     executor_name: str | None,
     target: str | None,
 ) -> list[Any]:
-    """識別子指定と filter 指定から比較対象の run 群を選ぶ。"""
+    """Select the runs to compare from identifiers and filters."""
     selected: list[Any] = []
     seen_run_ids: set[str] = set()
     identifier_list = [identifier for identifier in identifiers if identifier]
@@ -1488,7 +1488,7 @@ def _select_result_manifests(
     )
 
     def append_manifest(manifest: Any) -> None:
-        """run_id 単位で重複なく manifest を追加する。"""
+        """Add manifests without duplicating a run_id."""
         run_id = str(manifest.run_id)
         if run_id in seen_run_ids:
             return
@@ -1519,7 +1519,7 @@ def _select_result_manifests(
 
 
 def _coerce_non_negative_int(value: Any, *, default: int = 0) -> int:
-    """表示用に非負整数へ丸める。"""
+    """Coerce to a non-negative integer for display."""
     try:
         return max(0, int(value))
     except (TypeError, ValueError):
@@ -1527,7 +1527,7 @@ def _coerce_non_negative_int(value: Any, *, default: int = 0) -> int:
 
 
 def _load_result_detail_payload(detail_path: Path) -> dict[str, Any] | None:
-    """detail.json を安全に読み込む。"""
+    """Load detail.json defensively."""
     if not detail_path.exists():
         return None
     try:
@@ -1542,7 +1542,7 @@ def _load_result_detail_payload(detail_path: Path) -> dict[str, Any] | None:
 
 
 def _coerce_score_value(value: Any) -> float | None:
-    """task result の score を float へ正規化する。"""
+    """Normalize a task result's score to a float."""
     try:
         return float(value)
     except (TypeError, ValueError):
@@ -1550,7 +1550,7 @@ def _coerce_score_value(value: Any) -> float | None:
 
 
 def _normalize_compare_k_values(k_values: list[int] | None, run_count: int) -> list[int]:
-    """compare で集計する k 一覧を検証して返す。"""
+    """Validate and return the list of k values compare aggregates."""
     if run_count <= 0:
         return []
 
@@ -1566,7 +1566,7 @@ def _normalize_compare_k_values(k_values: list[int] | None, run_count: int) -> l
 
 
 def _estimate_pass_at_k(total_samples: int, passed_samples: int, k: int) -> float:
-    """標準的な unbiased estimator で PASS@k を計算する。"""
+    """Compute PASS@k with the standard unbiased estimator."""
     if k < 1:
         raise ValueError("k must be >= 1")
     if total_samples < 1 or passed_samples <= 0:
@@ -1587,7 +1587,7 @@ def _index_task_results(
     *,
     run_id: str,
 ) -> dict[str, dict[str, Any]]:
-    """1 run 分の task_results を task_id キーで引ける辞書へ変換する。"""
+    """Index one run's task_results by task_id."""
     indexed: dict[str, dict[str, Any]] = {}
     for task_result in task_results:
         task_id = str(task_result.get("task_id") or "").strip()
@@ -1604,7 +1604,7 @@ def _validate_selected_result_manifests(
     *,
     min_run_count: int,
 ) -> None:
-    """選択された run 群が同じ benchmark / target を向いているか確認する。"""
+    """Check that the selected runs share one benchmark and target."""
     if len(manifests) < min_run_count:
         raise typer.BadParameter(f"At least {min_run_count} result(s) are required.")
 
@@ -1784,7 +1784,7 @@ def _build_result_compare_payload(
     k_values: list[int] | None,
     min_run_count: int = 2,
 ) -> dict[str, Any]:
-    """複数 run 比較用の PASS/FAIL 行列と PASS@k 集計を作る。"""
+    """Build the PASS/FAIL matrix and PASS@k aggregate for a multi-run comparison."""
     _validate_selected_result_manifests(
         manifests,
         min_run_count=min_run_count,
@@ -1821,7 +1821,7 @@ def _build_result_compare_payload(
 
 
 def _build_result_pass_at_k_payload(compare_payload: dict[str, Any]) -> dict[str, Any]:
-    """compare 集計結果から PASS@k 専用の要約を切り出す。"""
+    """Extract the PASS@k-only summary from the compare aggregate."""
     return {
         "benchmark_name": compare_payload["benchmark_name"],
         "target": compare_payload["target"],
@@ -1836,7 +1836,7 @@ def _build_result_pass_at_k_payload(compare_payload: dict[str, Any]) -> dict[str
 
 
 def _format_compare_task_status(status: str) -> str:
-    """PASS/FAIL/MISSING を比較テーブル用の表示へ変換する。"""
+    """Render PASS/FAIL/MISSING for the comparison table."""
     if status == "PASS":
         return "[green]PASS[/green]"
     if status == "FAIL":
@@ -1845,7 +1845,7 @@ def _format_compare_task_status(status: str) -> str:
 
 
 def _render_result_compare(payload: dict[str, Any]) -> None:
-    """複数 run の比較結果を表形式で表示する。"""
+    """Render a multi-run comparison as a table."""
     version_text = ", ".join(version or "—" for version in payload["benchmark_versions"])
     task_basis = "union of task ids" if payload["has_partial_coverage"] else "shared task set"
     console.print(
@@ -1929,7 +1929,7 @@ def _render_result_compare(payload: dict[str, Any]) -> None:
 
 
 def _render_result_pass_at_k(payload: dict[str, Any]) -> None:
-    """PASS@k 専用コマンドの結果を表形式で表示する。"""
+    """Render the PASS@k command's result as a table."""
     version_text = ", ".join(version or "—" for version in payload["benchmark_versions"])
     task_basis = "union of task ids" if payload["has_partial_coverage"] else "shared task set"
     console.print(
@@ -1991,7 +1991,7 @@ def _render_result_pass_at_k(payload: dict[str, Any]) -> None:
 
 
 def _render_result_table(manifests: list[Any], result_root: Path) -> None:
-    """結果一覧を表形式で表示する。"""
+    """Render the result list as a table."""
     table = Table(show_header=True, header_style=TABLE_HEADER_STYLE)
     table.add_column(RUN_ID_COLUMN)
     table.add_column("User")
@@ -2111,7 +2111,7 @@ def _render_detail_summary_json(detail_summary: Mapping[str, Any]) -> None:
 
 
 def _render_result_detail(manifest: Any, result_root: Path) -> None:
-    """結果 1 件の詳細を表示する。"""
+    """Show the detail of one result."""
     detail_payload = _load_result_detail_payload(Path(manifest.detail_file_path))
     executor_runtime = resolve_executor_runtime_payload(
         benchmark_name=manifest.benchmark_name,
@@ -2138,7 +2138,7 @@ def _render_result_detail(manifest: Any, result_root: Path) -> None:
 
 
 def _translate_legacy_argv(argv: list[str]) -> list[str]:
-    """旧 `--benchmark ...` 形式を `bench run` サブコマンドへ寄せる。"""
+    """Map the legacy `--benchmark ...` form onto the `bench run` subcommand."""
     if not argv or "--benchmark" not in argv:
         return argv
 
@@ -2224,13 +2224,13 @@ def _translate_legacy_argv(argv: list[str]) -> list[str]:
 def benchmark_list(
     ctx: typer.Context,
     query: Annotated[
-        str | None, typer.Option("--query", help="名前・target・role などで絞り込む。")
+        str | None, typer.Option("--query", help="Filter by name, target, role and so on.")
     ] = None,
     output_format: Annotated[
-        OutputFormat, typer.Option("--format", help="出力形式。")
+        OutputFormat, typer.Option("--format", help="Output format.")
     ] = OutputFormat.table,
 ) -> None:
-    """登録済みベンチマーク一覧を表示する。"""
+    """List the registered benchmarks."""
     state = _state_from_ctx(ctx)
     records = _filter_benchmarks(_discover_benchmarks(state.assets_root), query)
     if output_format is OutputFormat.json:
@@ -2242,24 +2242,24 @@ def benchmark_list(
 @benchmark_app.command("search")
 def benchmark_search(
     ctx: typer.Context,
-    query: Annotated[str, typer.Argument(help="検索文字列。")],
+    query: Annotated[str, typer.Argument(help="Search string.")],
     output_format: Annotated[
-        OutputFormat, typer.Option("--format", help="出力形式。")
+        OutputFormat, typer.Option("--format", help="Output format.")
     ] = OutputFormat.table,
 ) -> None:
-    """ベンチマーク定義を検索する。"""
+    """Search the benchmark definitions."""
     benchmark_list(ctx=ctx, query=query, output_format=output_format)
 
 
 @benchmark_app.command("show")
 def benchmark_show(
     ctx: typer.Context,
-    benchmark_name: Annotated[str, typer.Argument(help="ベンチマーク名またはディレクトリ名。")],
+    benchmark_name: Annotated[str, typer.Argument(help="Benchmark name or directory name.")],
     output_format: Annotated[
-        OutputFormat, typer.Option("--format", help="出力形式。")
+        OutputFormat, typer.Option("--format", help="Output format.")
     ] = OutputFormat.table,
 ) -> None:
-    """ベンチマーク定義の詳細を表示する。"""
+    """Show the detail of a benchmark definition."""
     state = _state_from_ctx(ctx)
     records = _discover_benchmarks(state.assets_root)
     record = _resolve_benchmark(records, benchmark_name)
@@ -2693,17 +2693,17 @@ def _run_benchmark_locally(run_context: BenchmarkRunContext) -> None:
 @benchmark_app.command("run")
 def benchmark_run(
     ctx: typer.Context,
-    benchmark_name: Annotated[str, typer.Argument(help="ベンチマーク名またはディレクトリ名。")],
-    executor: Annotated[str | None, typer.Option("--executor", help="Purple executor 名。")] = None,
+    benchmark_name: Annotated[str, typer.Argument(help="Benchmark name or directory name.")],
+    executor: Annotated[str | None, typer.Option("--executor", help="Purple executor name.")] = None,
     launcher: Annotated[
         ExecutionLauncher,
-        typer.Option("--launcher", help="実行経路。`local` または `slurm`。"),
+        typer.Option("--launcher", help="Execution route: `local` or `slurm`."),
     ] = ExecutionLauncher.local,
     workdir: Annotated[
         Path,
         typer.Option(
             "--workdir",
-            help="Green/Purple サーバー起動時の作業ディレクトリ。",
+            help="Working directory used when starting the Green/Purple servers.",
             file_okay=False,
             dir_okay=True,
             resolve_path=False,
@@ -2711,28 +2711,28 @@ def benchmark_run(
     ] = Path.cwd(),
     target: Annotated[
         str | None,
-        typer.Option("--target", help="benchmark.toml の config.target を上書きする。"),
+        typer.Option("--target", help="Override config.target from benchmark.toml."),
     ] = None,
     config_overrides: Annotated[
         list[str] | None,
         typer.Option(
             "--config",
-            help="request config を KEY=VALUE 形式で上書きする。複数指定可。",
+            help="Override the request config as KEY=VALUE; repeatable.",
         ),
     ] = None,
     task_ids: Annotated[
         list[str] | None,
-        typer.Option("--task-id", help="評価対象 task_id を絞り込む。"),
+        typer.Option("--task-id", help="Restrict evaluation to these task_ids."),
     ] = None,
     max_parallel: Annotated[
         int | None,
-        typer.Option("--max-parallel", min=1, help="同時に進める benchmark task 数。"),
+        typer.Option("--max-parallel", min=1, help="Number of benchmark tasks to run concurrently."),
     ] = None,
     vllm_model_id: Annotated[
         str | None,
         typer.Option(
             "--vllm-model-id",
-            help="managed vLLM の model id。",
+            help="Model id of the managed vLLM.",
         ),
     ] = None,
     wm_strategy: Annotated[
@@ -3472,84 +3472,84 @@ def benchmark_run(
         ),
     ] = None,
     green_host: Annotated[
-        str | None, typer.Option("--green-host", help="Green host を上書きする。")
+        str | None, typer.Option("--green-host", help="Override the Green host.")
     ] = None,
     green_port: Annotated[
-        int | None, typer.Option("--green-port", help="Green port を上書きする。")
+        int | None, typer.Option("--green-port", help="Override the Green port.")
     ] = None,
     purple_host: Annotated[
-        str | None, typer.Option("--purple-host", help="Purple host を上書きする。")
+        str | None, typer.Option("--purple-host", help="Override the Purple host.")
     ] = None,
     purple_port: Annotated[
-        int | None, typer.Option("--purple-port", help="Purple port を上書きする。")
+        int | None, typer.Option("--purple-port", help="Override the Purple port.")
     ] = None,
     slurm_partition: Annotated[
         str | None,
-        typer.Option("--slurm-partition", help="launcher=slurm 時の Slurm partition。"),
+        typer.Option("--slurm-partition", help="Slurm partition when launcher=slurm."),
     ] = None,
     slurm_job_name: Annotated[
         str | None,
-        typer.Option("--slurm-job-name", help="launcher=slurm 時の Slurm job name。"),
+        typer.Option("--slurm-job-name", help="Slurm job name when launcher=slurm."),
     ] = None,
     slurm_output: Annotated[
         str | None,
-        typer.Option("--slurm-output", help="launcher=slurm 時の Slurm output path。"),
+        typer.Option("--slurm-output", help="Slurm output path when launcher=slurm."),
     ] = None,
     slurm_time: Annotated[
         str | None,
-        typer.Option("--slurm-time", help="launcher=slurm 時の Slurm time limit。"),
+        typer.Option("--slurm-time", help="Slurm time limit when launcher=slurm."),
     ] = None,
     slurm_mem: Annotated[
         str | None,
-        typer.Option("--slurm-mem", help="launcher=slurm 時の Slurm memory 指定。"),
+        typer.Option("--slurm-mem", help="Slurm memory request when launcher=slurm."),
     ] = None,
     slurm_cpus_per_task: Annotated[
         int | None,
-        typer.Option("--slurm-cpus-per-task", min=1, help="launcher=slurm 時の CPU 数。"),
+        typer.Option("--slurm-cpus-per-task", min=1, help="CPU count when launcher=slurm."),
     ] = None,
     slurm_gpus: Annotated[
         int | None,
-        typer.Option("--slurm-gpus", min=1, help="launcher=slurm 時の GPU 数。"),
+        typer.Option("--slurm-gpus", min=1, help="GPU count when launcher=slurm."),
     ] = None,
     slurm_account: Annotated[
         str | None,
-        typer.Option("--slurm-account", help="launcher=slurm 時の Slurm account。"),
+        typer.Option("--slurm-account", help="Slurm account when launcher=slurm."),
     ] = None,
     slurm_qos: Annotated[
         str | None,
-        typer.Option("--slurm-qos", help="launcher=slurm 時の Slurm qos。"),
+        typer.Option("--slurm-qos", help="Slurm QoS when launcher=slurm."),
     ] = None,
     slurm_constraint: Annotated[
         str | None,
-        typer.Option("--slurm-constraint", help="launcher=slurm 時の Slurm constraint。"),
+        typer.Option("--slurm-constraint", help="Slurm constraint when launcher=slurm."),
     ] = None,
     slurm_exclude: Annotated[
         str | None,
-        typer.Option("--slurm-exclude", help="launcher=slurm 時の Slurm exclude nodelist。"),
+        typer.Option("--slurm-exclude", help="Slurm exclude nodelist when launcher=slurm."),
     ] = None,
     slurm_args: Annotated[
         list[str] | None,
         typer.Option(
             "--slurm-arg",
-            help="launcher=slurm 時に `sbatch` へそのまま追加する引数。複数指定可。",
+            help="Arguments appended verbatim to `sbatch` when launcher=slurm; repeatable.",
         ),
     ] = None,
     ready_timeout: Annotated[
         int | None,
         typer.Option(
             "--ready-timeout",
-            help="エージェント起動待ち秒数。未指定時は実行条件に応じた既定値を使う。",
+            help="Seconds to wait for agents to start; the default depends on the run.",
         ),
     ] = None,
     show_logs: Annotated[
         bool,
-        typer.Option("--show-logs/--no-show-logs", help="子プロセスの stdout/stderr を表示する。"),
+        typer.Option("--show-logs/--no-show-logs", help="Show child-process stdout/stderr."),
     ] = False,
     serve_only: Annotated[
-        bool, typer.Option("--serve-only", help="サーバーだけ起動して待機する。")
+        bool, typer.Option("--serve-only", help="Start the servers only and wait.")
     ] = False,
 ) -> None:
-    """ベンチマークを実行、または Slurm へ送信する。"""
+    """Run a benchmark, or submit it to Slurm."""
     # The World Model is pluggable regardless of executor: surface it as first-class CLI
     # args that map to the WM_* env vars ejepa_wm reads (wm_config_from_env). Setting them on
     # os.environ here propagates to the green/purple subprocesses (the env builder does
@@ -3827,22 +3827,22 @@ def benchmark_run(
 @result_app.command("list")
 def result_list(
     ctx: typer.Context,
-    query: Annotated[str | None, typer.Option("--query", help="任意の文字列で絞り込む。")] = None,
+    query: Annotated[str | None, typer.Option("--query", help="Filter by an arbitrary string.")] = None,
     status: Annotated[
-        ResultStatusFilter, typer.Option("--status", help="status で絞り込む。")
+        ResultStatusFilter, typer.Option("--status", help="Filter by status.")
     ] = ResultStatusFilter.all,
     benchmark_name: Annotated[
-        str | None, typer.Option("--benchmark", help="ベンチマーク名で絞り込む。")
+        str | None, typer.Option("--benchmark", help="Filter by benchmark name.")
     ] = None,
     executor_name: Annotated[
-        str | None, typer.Option("--executor", help="executor 名で絞り込む。")
+        str | None, typer.Option("--executor", help="Filter by executor name.")
     ] = None,
-    target: Annotated[str | None, typer.Option("--target", help="target で絞り込む。")] = None,
+    target: Annotated[str | None, typer.Option("--target", help="Filter by target.")] = None,
     output_format: Annotated[
-        OutputFormat, typer.Option("--format", help="出力形式。")
+        OutputFormat, typer.Option("--format", help="Output format.")
     ] = OutputFormat.table,
 ) -> None:
-    """保存済みベンチマーク結果を一覧表示する。"""
+    """List saved benchmark results."""
     state = _state_from_ctx(ctx)
     manifests = _filter_result_manifests(
         _load_result_manifests(state.result_root),
@@ -3863,15 +3863,15 @@ def result_list(
 @result_app.command("search")
 def result_search(
     ctx: typer.Context,
-    query: Annotated[str, typer.Argument(help="検索文字列。")],
+    query: Annotated[str, typer.Argument(help="Search string.")],
     status: Annotated[
-        ResultStatusFilter, typer.Option("--status", help="status で絞り込む。")
+        ResultStatusFilter, typer.Option("--status", help="Filter by status.")
     ] = ResultStatusFilter.all,
     output_format: Annotated[
-        OutputFormat, typer.Option("--format", help="出力形式。")
+        OutputFormat, typer.Option("--format", help="Output format.")
     ] = OutputFormat.table,
 ) -> None:
-    """保存済み結果を検索する。"""
+    """Search saved results."""
     result_list(ctx=ctx, query=query, status=status, output_format=output_format)
 
 
@@ -3881,33 +3881,33 @@ def result_compare(
     identifiers: Annotated[
         list[str] | None,
         typer.Argument(
-            help="比較する run_id, その prefix, または結果ディレクトリ/manifest パス。省略時は filter option で選ぶ。"
+            help="run_id to compare, its prefix, or a result directory / manifest path. Omit to select with the filter options."
         ),
     ] = None,
-    query: Annotated[str | None, typer.Option("--query", help="任意の文字列で絞り込む。")] = None,
+    query: Annotated[str | None, typer.Option("--query", help="Filter by an arbitrary string.")] = None,
     status: Annotated[
-        ResultStatusFilter, typer.Option("--status", help="status で絞り込む。")
+        ResultStatusFilter, typer.Option("--status", help="Filter by status.")
     ] = ResultStatusFilter.all,
     benchmark_name: Annotated[
-        str | None, typer.Option("--benchmark", help="ベンチマーク名で絞り込む。")
+        str | None, typer.Option("--benchmark", help="Filter by benchmark name.")
     ] = None,
     executor_name: Annotated[
-        str | None, typer.Option("--executor", help="executor 名で絞り込む。")
+        str | None, typer.Option("--executor", help="Filter by executor name.")
     ] = None,
-    target: Annotated[str | None, typer.Option("--target", help="target で絞り込む。")] = None,
+    target: Annotated[str | None, typer.Option("--target", help="Filter by target.")] = None,
     pass_threshold: Annotated[
         float,
-        typer.Option("--pass-threshold", help="PASS とみなす score の閾値。"),
+        typer.Option("--pass-threshold", help="Score threshold counted as PASS."),
     ] = 1.0,
     k_values: Annotated[
         list[int] | None,
-        typer.Option("--k", min=1, help="表示する PASS@k の k。複数指定可。"),
+        typer.Option("--k", min=1, help="k values of PASS@k to display; repeatable."),
     ] = None,
     output_format: Annotated[
-        OutputFormat, typer.Option("--format", help="出力形式。")
+        OutputFormat, typer.Option("--format", help="Output format.")
     ] = OutputFormat.table,
 ) -> None:
-    """識別子または filter 指定で選んだ複数 run の比較結果を表示する。"""
+    """Compare the runs selected by identifier or filter."""
     state = _state_from_ctx(ctx)
     manifests = _load_result_manifests(state.result_root)
     selected_manifests = _select_result_manifests(
@@ -3938,33 +3938,33 @@ def result_pass_at_k(
     identifiers: Annotated[
         list[str] | None,
         typer.Argument(
-            help="集計対象の run_id, その prefix, または結果ディレクトリ/manifest パス。省略時は filter option で選ぶ。"
+            help="run_id to aggregate, its prefix, or a result directory / manifest path. Omit to select with the filter options."
         ),
     ] = None,
-    query: Annotated[str | None, typer.Option("--query", help="任意の文字列で絞り込む。")] = None,
+    query: Annotated[str | None, typer.Option("--query", help="Filter by an arbitrary string.")] = None,
     status: Annotated[
-        ResultStatusFilter, typer.Option("--status", help="status で絞り込む。")
+        ResultStatusFilter, typer.Option("--status", help="Filter by status.")
     ] = ResultStatusFilter.all,
     benchmark_name: Annotated[
-        str | None, typer.Option("--benchmark", help="ベンチマーク名で絞り込む。")
+        str | None, typer.Option("--benchmark", help="Filter by benchmark name.")
     ] = None,
     executor_name: Annotated[
-        str | None, typer.Option("--executor", help="executor 名で絞り込む。")
+        str | None, typer.Option("--executor", help="Filter by executor name.")
     ] = None,
-    target: Annotated[str | None, typer.Option("--target", help="target で絞り込む。")] = None,
+    target: Annotated[str | None, typer.Option("--target", help="Filter by target.")] = None,
     pass_threshold: Annotated[
         float,
-        typer.Option("--pass-threshold", help="PASS とみなす score の閾値。"),
+        typer.Option("--pass-threshold", help="Score threshold counted as PASS."),
     ] = 1.0,
     k_values: Annotated[
         list[int] | None,
-        typer.Option("--k", min=1, help="計算する PASS@k の k。複数指定可。"),
+        typer.Option("--k", min=1, help="k values of PASS@k to compute; repeatable."),
     ] = None,
     output_format: Annotated[
-        OutputFormat, typer.Option("--format", help="出力形式。")
+        OutputFormat, typer.Option("--format", help="Output format.")
     ] = OutputFormat.table,
 ) -> None:
-    """識別子または filter 指定で選んだ run 群から PASS@k を直接計算する。"""
+    """Compute PASS@k directly from the runs selected by identifier or filter."""
     state = _state_from_ctx(ctx)
     manifests = _load_result_manifests(state.result_root)
     selected_manifests = _select_result_manifests(
@@ -3996,13 +3996,13 @@ def result_show(
     ctx: typer.Context,
     identifier: Annotated[
         str,
-        typer.Argument(help="run_id, その prefix, または結果ディレクトリ/manifest パス。"),
+        typer.Argument(help="run_id, its prefix, or a result directory / manifest path."),
     ],
     output_format: Annotated[
-        OutputFormat, typer.Option("--format", help="出力形式。")
+        OutputFormat, typer.Option("--format", help="Output format.")
     ] = OutputFormat.table,
 ) -> None:
-    """結果 1 件の詳細を表示する。"""
+    """Show the detail of one result."""
     state = _state_from_ctx(ctx)
     manifests = _load_result_manifests(state.result_root)
     manifest = _resolve_result_identifier(identifier, state.result_root, manifests)
@@ -4034,7 +4034,7 @@ def result_show(
 
 
 def main(argv: list[str] | None = None) -> None:
-    """CLI エントリポイント。"""
+    """CLI entry point."""
     effective_argv = sys.argv[1:] if argv is None else argv
     with _translate_termination_signals():
         app(args=_translate_legacy_argv(effective_argv))

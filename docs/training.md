@@ -80,8 +80,10 @@ Expanded corpus — the paper's *JEPA, expanded* row of Table 2:
 cd training
 uv run torchrun --nproc_per_node=8 src/finetuning_jepa.py \
   --model Qwen/Qwen3-Embedding-0.6B \
+  --truncate-states-keep-newest --max-input-length 8192 \
+  --backbone-type encoder --pooling last_token \
   --trajectory-dataset enterprise_tool_calling_plus_swe_25k \
-  --predictor-arch transformer --predictor-transformer-layers 6 \
+  --predictor-arch transformer --predictor-transformer-layers 8 \
   --predictor-transformer-heads 16 --predictor-history-length 8 \
   --canonical-event-head-inputs state --event-target \
   --unfreeze-top-backbone-layers 4 --backbone-learning-rate 5e-6 \
@@ -111,13 +113,16 @@ The heads are trained on top of a frozen Stage-1 checkpoint:
 cd training
 uv run torchrun --nproc_per_node=2 src/finetuning_jepa.py \
   --train-canonical-event-heads-only \
+  --model Qwen/Qwen3-Embedding-0.6B \
+  --truncate-states-keep-newest \
+  --backbone-type encoder --pooling last_token \
   --jepa-checkpoint-path ../checkpoints/jepa_pretrain_expanded \
   --canonical-event-train-jsonl trajectories/canonical_event_with_nudge_llm_enterpriseops_gym_crmarenapro_train_examples_cleaned_ensemble_value_scored.jsonl \
   --canonical-event-eval-jsonl  trajectories/canonical_event_with_nudge_llm_enterpriseops_gym_crmarenapro_eval_examples_cleaned_ensemble_value_scored.jsonl \
   --canonical-event-heads all --canonical-event-head-inputs state \
   --canonical-event-head-hidden-size 512 \
   --canonical-event-class-balance effective_num --canonical-event-cb-beta 0.9999 \
-  --terminal-loss-coeff 1.0 --num-train-epochs 5 --learning-rate 5e-4 \
+  --terminal-loss-coeff 1.0 --num-train-epochs 5 --learning-rate 5e-4 --terminal-class-balance effective_num --terminal-cb-beta 0.9999 \
   --per-device-train-batch-size 24 --bf16 \
   --canonical-event-dump-predictions ../checkpoints/jepa/eval_predictions_per_example.jsonl \
   --output-dir ../checkpoints/jepa
@@ -134,8 +139,7 @@ The result directory is what `--wm-ewm-jepa-checkpoint` consumes.
 evaluated on 5,854, over EnterpriseOps-Gym + CRMArena-Pro trajectories. Its
 `run_summary.json` reports per-head accuracy — 0.875 `execution_status`, 0.963
 `risk_signal`, 0.771 `terminal`, down to 0.246 `missing_information_type`. Those numbers
-are the honest ceiling on how much signal the planner has to work with, and
-`docs/qualitative_analysis.md` §6 argues from them.
+are the ceiling on how much signal the planner has to work with.
 
 **Known gap.** The vendored `finetuning_jepa.py` is the last committed snapshot of the
 training script (EWM branch `jepa`, 2026-07-17). The paper's checkpoint was produced by a
@@ -157,14 +161,14 @@ The baseline world model is a generative fine-tune on the same labelled corpus.
 
 ```bash
 cd training
-CUDA_VISIBLE_DEVICES=0,1 uv run torchrun --nproc_per_node=2 src/finetuning.py \
+uv run torchrun --nproc_per_node=8 src/finetuning.py \
   --model ../checkpoints/llm_wm_base \
   --world-model-target canonical_event_with_nudge \
   --train-data-path trajectories/..._train_examples_cleaned_ensemble_value_scored.jsonl \
   --eval-data-path  trajectories/..._eval_examples_cleaned_ensemble_value_scored.jsonl \
-  --state-history-size 3 \
+  --state-history-size 8 \
   --include-world-model-history \
-  --num-train-epochs 3 --learning-rate 2e-5 \
+  --num-train-epochs 1 --learning-rate 2e-5 \
   --per-device-train-batch-size 2 --gradient-accumulation-steps 4 \
   --bf16 --gradient-checkpointing \
   --output-dir ../checkpoints/llm_wm_state

@@ -8,7 +8,7 @@ from common.purple_protocol import build_purple_request_text
 
 
 class PurpleAgentError(RuntimeError):
-    """Purple Agent から非 completed 応答が返ったときの詳細付き例外。"""
+    """Raised with detail when the Purple agent returns a non-completed response."""
 
     def __init__(self, url: str, outputs: dict[str, Any]) -> None:
         self.url = url
@@ -17,10 +17,10 @@ class PurpleAgentError(RuntimeError):
 
 
 class PurpleClient:
-    """Purple Agent との会話状態を保持しながら通信する。"""
+    """Talk to the Purple agent while holding the conversation state."""
 
     def __init__(self) -> None:
-        """接続先ごとの context_id を初期化する。"""
+        """Initialize the per-endpoint context_id."""
         self._context_ids: dict[str, str | None] = {}
 
     async def send_message(
@@ -31,7 +31,7 @@ class PurpleClient:
         new_conversation: bool = False,
         request_config: Mapping[str, Any] | None = None,
     ) -> str:
-        """Purple Agent にメッセージを送り、最終応答本文を返す。"""
+        """Send a message to the Purple agent and return the final response body."""
         result = await self.send_message_with_trajectory(
             message=message,
             file_payloads=file_payloads,
@@ -51,7 +51,7 @@ class PurpleClient:
         request_config: Mapping[str, Any] | None = None,
         capture_trajectory: bool = False,
     ) -> dict[str, Any]:
-        """Purple Agent にメッセージを送り、応答と任意の trajectory を返す。"""
+        """Send a message to the Purple agent and return the response plus an optional trajectory."""
         outbound_message = build_purple_request_text(message, request_config)
         outputs = await send_message_with_files(
             message=outbound_message,
@@ -73,5 +73,5 @@ class PurpleClient:
         }
 
     def reset(self) -> None:
-        """保持している会話状態をクリアする。"""
+        """Clear the held conversation state."""
         self._context_ids = {}

@@ -1,11 +1,7 @@
 #!/usr/bin/env bash
-# Re-run the main table's world-model cells under one fixed configuration.
-#
-# Decision 2026-09-18: apart from EnterpriseOps-Gym, the existing world-model runs mix
-# parallelism (WorkBench spans mp=1/3/10/20) and beam settings (h4/e4 vs h3/e2), so they
-# are not comparable within a column. Every cell here is re-run with the protocol in
-# results/analysis/main_table_protocol.md; baselines are NOT re-run (they carry no
-# world-model configuration and are reused), and each cell gets REPEATS new runs.
+# Run the world-model cells of paper Table 3 under the fixed configuration in
+# docs/main_table_protocol.md. Baselines carry no world-model configuration and are run
+# separately; each cell here gets REPEATS runs.
 #
 # One benchmark per invocation so that several can run concurrently on separate agent
 # endpoints and GPUs:
@@ -15,11 +11,9 @@
 #   BENCH=AutomationBench AGENT_URL=http://127.0.0.1:18045/v1 AGENT_NAME=Qwen3.6-27B JEPA_GPU=6 \
 #     scripts/run_main_table_repeats.sh
 #
-# Command shape follows the project's reference invocation: one run_wm_harnesses
-# call per (world model, repeat) covering all three harnesses, with the critic settings
-# --critic-failure-prob 0.30 --critic-stall-prob 0.40 --critic-max-quiet-steps 4.
+# One run_wm_harnesses call per (world model, repeat) covers all three harnesses.
 #
-# Labels: tab-<slug>-<jepa|llmwm>-r<N> (one summary holds all three harnesses).
+# Labels: tab-<slug>-<jepa|llmwm|agentworld>-r<N> (one summary holds all three).
 # Resumable: a label whose summary already exists is skipped.
 set -uo pipefail
 cd "$(dirname "$0")/.."
@@ -29,14 +23,12 @@ AGENT_URL="${AGENT_URL:?set AGENT_URL}"
 AGENT_NAME="${AGENT_NAME:?set AGENT_NAME}"
 JEPA_GPU="${JEPA_GPU:-3}"
 REPEATS="${REPEATS:-2}"
-# First repeat index to run. Lets a caller drive one repeat at a time (REP_START=2
-# REPEATS=2) so several repeats of the same cell can run concurrently on different
-# agent endpoints instead of being serialised inside one invocation.
+# First repeat index to run, so repeats of one cell can be driven concurrently on
+# different agent endpoints (REP_START=2 REPEATS=2).
 REP_START="${REP_START:-1}"
-# Appended to the run label. Lets one harness be banked per invocation
-# (HARNESSES=beam_interval LABEL_SUFFIX=-beam), so an endpoint dying during the second
-# harness does not quarantine the summary of the first, which is how a completed
-# AutomationBench beam run was lost.
+# Appended to the run label, so one harness can be banked per invocation
+# (HARNESSES=beam_interval LABEL_SUFFIX=-beam) and an endpoint dying during a later
+# harness cannot quarantine the summary of an earlier one.
 LABEL_SUFFIX="${LABEL_SUFFIX:-}"
 WORLD_MODELS="${WORLD_MODELS:-jepa llmwm}"
 HARNESSES="${HARNESSES:-beam_interval revision itp_i}"   # one invocation runs all three
@@ -57,8 +49,6 @@ unset WM_JEPA_PREDICTION_CONTROL WM_JEPA_COMPILE
 case "$BENCH" in
   EnterpriseOps-Gym)
     SLUG=eops; MP=5
-    # EnterpriseOps-Gym is verified insensitive to parallelism up to mp=5 (operations
-    # paired test: 31/100 at mp=3 vs 32/100 at mp=5), so the fastest safe setting is used.
     export ENTERPRISEOPS_GYM_REPO_PATH="${ENTERPRISEOPS_GYM_REPO_PATH:-$PWD/upstreams/EnterpriseOps-Gym}"
     export ENTERPRISEOPS_LLM_PROVIDER=vllm ENTERPRISEOPS_LLM_API_ENDPOINT="$AGENT_URL"
     export ENTERPRISEOPS_LLM_MODEL="$AGENT_NAME" ENTERPRISEOPS_LLM_API_KEY=EMPTY
@@ -80,16 +70,13 @@ case "$BENCH" in
     ;;
   crmarenapro)
     SLUG=crm; MP=3
-    # No MAX_TURNS here: nothing in the crmarenapro asset reads it (it was copied from an
-    # older launcher). The turn budget is green/agent.py's `max_turns = min(config.max_steps, 10)`,
-    # i.e. hard-capped at 10, and max_steps itself is hardcoded to 10 unless leaderboard_mode=true.
-    # `--config max_turns=50` below is likewise inert; it is kept only to match the reference command.
+    # crmarenapro caps the turn budget at 10 (green/agent.py: max_turns =
+    # min(config.max_steps, 10), with max_steps hardcoded to 10 unless leaderboard_mode),
+    # so --config max_turns is inert here.
     export LLM_PROVIDER=openai_compatible LLM_MODEL="$AGENT_NAME" LLM_BASE_URL="$AGENT_URL" LLM_API_KEY=EMPTY
     export OPENAI_API_KEY=EMPTY
-    # Matches the reference command. NOTE: crmarenapro only honours `timeout`/`max_steps`
-    # when leaderboard_mode=true (assets/crmarenapro/green/agent.py), so with this setting
-    # the effective per-task timeout is the hardcoded 300 s, not 3600 s. Kept as given so
-    # every CRM cell shares one setting; set CRM_LEADERBOARD=1 to switch the column.
+    # `timeout` is also honoured only under leaderboard_mode, so the effective per-task
+    # timeout here is 300 s. Set CRM_LEADERBOARD=1 for the leaderboard-mode column.
     BENCH_CFG=(--config target=world_model_test --config max_turns=50 --config timeout=3600 --config model_name="$AGENT_NAME")
     if [ "${CRM_LEADERBOARD:-0}" = 1 ]; then
       BENCH_CFG+=(--config leaderboard_mode=true --config max_steps=20)

@@ -24,21 +24,21 @@ LOGGER = get_logger(__name__)
 
 
 class BaseGreenAgent(ABC):
-    """ベンチマーク固有の Green 実装が従う抽象基底クラス。"""
+    """Abstract base class that benchmark-specific Green implementations follow."""
 
     @abstractmethod
     async def run_eval(self, request: EvalRequest, updater: TaskUpdater) -> None:
-        """評価要求を最後まで実行する。"""
+        """Run an evaluation request to completion."""
 
     @abstractmethod
     def validate_request(self, request: EvalRequest) -> tuple[bool, str]:
-        """受信した評価要求の妥当性を検証する。"""
+        """Validate an incoming evaluation request."""
 
     def validate_runtime_feedback_request(
         self,
         request: RuntimeFeedbackRequest,
     ) -> tuple[bool, str]:
-        """runtime feedback 要求の妥当性を検証する。未対応が既定。"""
+        """Validate a runtime-feedback request; unsupported by default."""
         del request
         return False, "runtime feedback is not supported by this Green agent"
 
@@ -47,21 +47,21 @@ class BaseGreenAgent(ABC):
         request: RuntimeFeedbackRequest,
         updater: TaskUpdater,
     ) -> RuntimeFeedbackResponse:
-        """runtime feedback 要求を実行する。未対応が既定。"""
+        """Serve a runtime-feedback request; unsupported by default."""
         del request, updater
         await asyncio.sleep(0)
         raise NotImplementedError("runtime feedback is not supported by this Green agent")
 
 
 class BenchmarkGreenExecutor(AgentExecutor):
-    """Green Agent を A2A サーバーへ接続する薄い実行器。"""
+    """Thin executor that connects a Green agent to an A2A server."""
 
     def __init__(self, green_agent: BaseGreenAgent) -> None:
-        """評価ロジック本体を受け取って保持する。"""
+        """Take and hold the evaluation logic itself."""
         self._agent = green_agent
 
     async def execute(self, context: RequestContext, event_queue: EventQueue) -> None:
-        """A2A リクエスト種別を判定して Green へ渡す。"""
+        """Dispatch an A2A request to Green by request type."""
         task_query = context.get_user_input()
         try:
             request = EvalRequest.model_validate_json(task_query)
@@ -114,7 +114,7 @@ class BenchmarkGreenExecutor(AgentExecutor):
                 )
             await updater.complete()
         except Exception as exc:
-            LOGGER.error("Green 実行失敗: %s", exc)
+            LOGGER.error("Green execution failed: %s", exc)
             await updater.update_status(
                 TaskState.failed,
                 new_agent_text_message(f"Agent error: {exc}", task.context_id, task.id),
@@ -123,5 +123,5 @@ class BenchmarkGreenExecutor(AgentExecutor):
             raise ServerError(error=InternalError(message=str(exc))) from exc
 
     async def cancel(self, request: RequestContext, event_queue: EventQueue) -> Task | None:
-        """キャンセル未対応を明示的に返す。"""
+        """Report explicitly that cancellation is unsupported."""
         raise ServerError(error=UnsupportedOperationError())

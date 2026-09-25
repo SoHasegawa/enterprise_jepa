@@ -2,26 +2,18 @@
 # Beam-search planning ablation: candidates x horizon x rollout mode, on
 # EnterpriseOps-Gym and AutomationBench, with the JEPA world model.
 #
-# DESIGN (minimal trials). A full grid is |S| x |H| x |LOOP| = 3 x 3 x 2 = 18
-# configs per benchmark. We instead run a one-factor-at-a-time (OFAT) design
-# around a centre point, which answers the same three questions in 6 configs
-# per benchmark (12 runs total):
+# One factor at a time around the paper's centre point, six configs per benchmark
+# (paper Table 10):
 #
 #     centre            s=8  h=3  open_loop
 #     candidates        s=4 | s=16        (h=3, open_loop)
 #     horizon           h=2 | h=4         (s=8, open_loop)
 #     rollout mode      closed_loop       (s=8, h=3)
 #
-# OFAT is justified by the earlier finding that horizon 4 / execute 4 and
-# horizon 3 / execute 2 differed by only 0.003 on AutomationBench, i.e. no
-# evidence of factor interactions worth paying 3x for. Set GRID=1 to run the
-# full grid instead. Set REPEATS=2 for a second seed (recommended for
-# AutomationBench, whose same-config repeats churn 42% of task scores); EOPS_REPEATS /
-# AB_REPEATS set them per benchmark, AB_TARGETS="sales operations support" runs
+# Execute-steps is held fixed at 2 so that "horizon" varies lookahead depth alone.
+# GRID=1 runs the full 3 x 3 x 2 grid instead. REPEATS / EOPS_REPEATS / AB_REPEATS set
+# the repeat count (the paper uses 3); AB_TARGETS="sales operations support" runs
 # several AutomationBench domains.
-#
-# Execute-steps is held fixed (default 2) so that "horizon" varies lookahead
-# depth alone; with h=2 the whole plan executes before replanning.
 #
 # Labels encode the config so scripts/summarize_beam_ablation.py can recover it:
 #     beam-ablation-<bench>[-<ab domain>]-s<S>-h<H>-e<E>-<open|closed>-r<REP>

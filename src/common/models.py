@@ -6,14 +6,14 @@ from pydantic import BaseModel, Field, HttpUrl
 
 
 class EvalRequest(BaseModel):
-    """Green に渡す評価要求を表す。"""
+    """Evaluation request handed to the Green agent."""
 
     participants: dict[str, HttpUrl]
     config: dict[str, Any]
 
 
 class EvalResult(BaseModel):
-    """ベンチマーク全体の集計結果を表す。"""
+    """Aggregate result over a whole benchmark."""
 
     target: str
     total_tasks: int
@@ -23,7 +23,7 @@ class EvalResult(BaseModel):
 
 
 class RuntimeFeedbackRequest(BaseModel):
-    """Purple generation の online reward を Green へ問い合わせる要求。"""
+    """Request asking Green for the online reward of one Purple generation."""
 
     kind: Literal["runtime_feedback"] = "runtime_feedback"
     target: str
@@ -33,7 +33,7 @@ class RuntimeFeedbackRequest(BaseModel):
 
 
 class RuntimeFeedbackResponse(BaseModel):
-    """Green が返す generation 単位の scalar reward。"""
+    """Per-generation scalar reward returned by Green."""
 
     kind: Literal["runtime_feedback_response"] = "runtime_feedback_response"
     target: str
@@ -54,7 +54,7 @@ class RuntimeFeedbackResponse(BaseModel):
 
 
 class BenchmarkRunPaths(BaseModel):
-    """実行構成から導出した結果保存先を表す。"""
+    """Result destination derived from the run configuration."""
 
     result_root: Path
     result_dir: Path
@@ -68,7 +68,7 @@ class BenchmarkRunPaths(BaseModel):
 
 
 class BenchmarkRunManifest(BaseModel):
-    """1 回のベンチマーク実行結果を表すメタデータ。"""
+    """Metadata describing a single benchmark run."""
 
     schema_version: str = "1.0"
     run_id: str
@@ -99,26 +99,26 @@ class BenchmarkRunManifest(BaseModel):
 
 
 class BenchmarkRunDetail(BaseModel):
-    """detail.json の共通スキーマ。
+    """Shared schema for detail.json.
 
-    すべてのベンチマークが出力する detail.json はこのモデルを満たす必要がある。
-    ベンチマーク固有のフィールド（trajectory_capture、self_evolution など）は
-    extra='allow' により追加フィールドとして許容される。
+    Every benchmark's detail.json must satisfy this model. Benchmark-specific fields
+    (trajectory_capture, self_evolution, ...) are accepted as extra fields through
+    extra='allow'.
 
-    必須フィールド:
-        schema_version : フォーマットバージョン。現在は "1.0"。
-        status         : "completed" または "failed"。
-        benchmark_name : benchmark.toml の name と一致すること。
-        executor_name  : 使用した executor 名。
-        total_tasks    : 評価したタスク数。
-        total_score    : スコアの合計値。
+    Required fields:
+        schema_version : format version; currently "1.0".
+        status         : "completed" or "failed".
+        benchmark_name : must match the name in benchmark.toml.
+        executor_name  : the executor that was used.
+        total_tasks    : number of tasks evaluated.
+        total_score    : sum of the scores.
         score_rate     : total_score / total_tasks（0.0〜1.0）。
-        details        : タスクごとの詳細リスト。各要素の構造はベンチマーク固有で可。
+        details        : per-task detail list; each entry may be benchmark-specific.
 
-    後方互換性:
-        extra='allow' のため、既存ベンチマークが出力する追加フィールドは
-        ValidationError を起こさずそのまま受け入れられる。
-        既存ベンチマーク側の修正は不要。
+    Backwards compatibility:
+        Because of extra='allow', additional fields emitted by existing benchmarks
+        are accepted as-is rather than raising ValidationError, so no benchmark
+        needs changing.
     """
 
     model_config = {"extra": "allow"}

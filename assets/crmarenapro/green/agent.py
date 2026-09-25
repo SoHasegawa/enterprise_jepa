@@ -39,7 +39,7 @@ from common.trajectory import (
 )
 from common.versioning import load_component_version
 # Test-time self-evolution belongs to an agent scaffold that is not part of this
-# repository (see docs/provenance.md). These no-op stands-in keep the green agent's
+# repository. These no-op stands-in keep the green agent's
 # code path intact and reject a run that explicitly asks for self-evolution.
 _SELF_EVOLVE_AVAILABLE = False
 

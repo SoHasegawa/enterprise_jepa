@@ -19,7 +19,7 @@ RESULT_DETAIL_FILE_NAME = "detail.json"
 
 
 def resolve_result_root(explicit_root: Path | None = None) -> Path:
-    """結果保存先のルートディレクトリを解決する。"""
+    """Resolve the root directory results are written to."""
     if explicit_root is not None:
         return explicit_root.expanduser().resolve()
     env_value = os.getenv("BENCHMARK_RESULT_ROOT")
@@ -29,7 +29,7 @@ def resolve_result_root(explicit_root: Path | None = None) -> Path:
 
 
 def _slugify(value: str, *, fallback: str, max_length: int = 64) -> str:
-    """パス断片として安全な ASCII スラッグへ変換する。"""
+    """Convert to an ASCII slug that is safe as a path fragment."""
     normalized = "".join(
         char if char.isascii() and (char.isalnum() or char in {"-", "_"}) else "_"
         for char in value.strip()
@@ -41,7 +41,7 @@ def _slugify(value: str, *, fallback: str, max_length: int = 64) -> str:
 
 
 def _task_selection_label(task_ids: list[str]) -> str:
-    """task_ids 一覧を短いラベルに要約する。"""
+    """Summarize a task_ids list into a short label."""
     if not task_ids:
         return "all"
     if len(task_ids) == 1:
@@ -52,7 +52,7 @@ def _task_selection_label(task_ids: list[str]) -> str:
 
 
 def resolve_user_name(explicit_user_name: str | None = None) -> str:
-    """結果記録に使うユーザー名を解決する。"""
+    """Resolve the user name recorded with a result."""
     candidates = [
         explicit_user_name,
         os.getenv("BENCHMARK_USER_NAME"),
@@ -73,7 +73,7 @@ def resolve_user_name(explicit_user_name: str | None = None) -> str:
 
 
 def _canonicalize_participants(participants: Mapping[str, Any]) -> dict[str, str]:
-    """URL 値を文字列化し、安定順序の辞書へ正規化する。"""
+    """Stringify URL values into a dict with a stable ordering."""
     normalized: dict[str, str] = {}
     for role in sorted(participants):
         value = str(participants[role]).strip()
@@ -93,7 +93,7 @@ def _compose_result_dir_name(
     user_name: str,
     run_id: str,
 ) -> str:
-    """experiments 配下 1 階層で識別しやすい結果ディレクトリ名を作る。"""
+    """Build a result directory name that is identifiable one level under experiments/."""
     benchmark_slug = _slugify(benchmark_name, fallback="benchmark", max_length=40)
     executor_slug = _slugify(executor_name, fallback="executor", max_length=24)
     target_slug = _slugify(target, fallback="target", max_length=24)
@@ -112,7 +112,7 @@ def _compose_result_dir_name(
 
 
 def _json_default(value: Any) -> Any:
-    """JSON 化できない値を安定して文字列化する。"""
+    """Stringify values that are not JSON-serializable, deterministically."""
     if isinstance(value, Path):
         return str(value)
     if isinstance(value, datetime):
@@ -132,7 +132,7 @@ def build_execution_identity(
     config_hash: str | None = None,
     created_at_utc: datetime | None = None,
 ) -> BenchmarkRunPaths:
-    """実行構成から結果ディレクトリと run_id を導出する。"""
+    """Derive the result directory and run_id from the run configuration."""
     resolved_root = resolve_result_root(result_root)
     created_at = created_at_utc or datetime.now(UTC)
     task_ids = [str(task_id) for task_id in request_config.get("task_ids", []) or []]
@@ -183,12 +183,12 @@ def build_execution_identity(
 
 
 def ensure_result_dir(paths: BenchmarkRunPaths) -> None:
-    """結果ディレクトリを作成する。"""
+    """Create the result directory."""
     paths.result_dir.mkdir(parents=True, exist_ok=True)
 
 
 def write_json_file(path: Path, payload: Any) -> Path:
-    """JSON ファイルを UTF-8 で書き出す。"""
+    """Write a JSON file as UTF-8."""
     path.parent.mkdir(parents=True, exist_ok=True)
     serializable = payload.model_dump(mode="json") if hasattr(payload, "model_dump") else payload
     path.write_text(
@@ -204,7 +204,7 @@ def write_result_artifacts(
     manifest: BenchmarkRunManifest,
     paths: BenchmarkRunPaths,
 ) -> tuple[Path, Path]:
-    """detail.json と manifest.json を保存する。"""
+    """Write detail.json and manifest.json."""
     ensure_result_dir(paths)
     detail_path = write_json_file(paths.detail_path, detail_payload)
     manifest_path = write_json_file(paths.manifest_path, manifest)
@@ -212,7 +212,7 @@ def write_result_artifacts(
 
 
 def iter_result_manifest_paths(result_root: Path | None = None) -> Iterable[Path]:
-    """規約に沿った manifest.json を列挙する。"""
+    """List the manifest.json files that follow the convention."""
     root = resolve_result_root(result_root)
     if not root.exists():
         return []
@@ -221,10 +221,10 @@ def iter_result_manifest_paths(result_root: Path | None = None) -> Iterable[Path
 
 
 def load_result_manifest(path: Path) -> BenchmarkRunManifest:
-    """manifest.json をモデルへ読み込む。"""
+    """Load a manifest.json into its model."""
     return BenchmarkRunManifest.model_validate_json(path.read_text(encoding="utf-8"))
 
 
 def build_manifest_search_blob(manifest: BenchmarkRunManifest) -> str:
-    """検索用に manifest 内容をフラットな文字列へまとめる。"""
+    """Flatten manifest contents into one searchable string."""
     return json.dumps(manifest.model_dump(mode="json"), ensure_ascii=False, sort_keys=True).lower()

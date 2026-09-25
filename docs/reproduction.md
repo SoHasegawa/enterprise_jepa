@@ -12,7 +12,6 @@ disputing a number.
 | Table 4 | Prediction controls on EnterpriseOps-Gym | `scripts/run_prediction_controls.sh` | `scripts/summarize_wm_harness_summaries.py` |
 | Table 5 | Enterprise-JEPA vs the tool-output LLM-WM (Qwen-AgentWorld) | `WORLD_MODELS=agentworld scripts/run_main_table_repeats.sh` | `scripts/summarize_main_table.py` |
 | Table 6 | Stage-1 trajectory sources (expanded corpus) | `training/src/generation/generate_adp_world_model_trajectories.py` | counts printed by the generator |
-| Table 9 | How the world model improves outcomes | (reuses the Table 3 runs) | `docs/qualitative_analysis.md` |
 | Table 10 | Planning-budget ablation | `scripts/run_beam_ablation.sh` | `scripts/summarize_beam_ablation.py` |
 | Figures 2, 4 | Beam-search latency vs rollout horizon, production and HF backends | `scripts/measure_wm_latency_vs_horizon.py` | `scripts/plot_wm_latency_hf_vs_production.py` |
 | §5.5 per-step latency | 4.5 s (JEPA) / 9.3 s (LLM-WM) / 2.6 s (no WM) per policy step | (reuses the Table 3 runs) | `scripts/summarize_per_step_latency.py` |
@@ -98,8 +97,7 @@ uv run python scripts/summarize_row_averages.py
 
 Each cell reports `mean ± sd` over three runs. Only full-size targets count (EOPS 80,
 CRM 428, WB 690, AB 600 scored on the four reported domains, TB 89). AutomationBench is run
-over all six domains and scored excluding marketing and finance;
-`results/analysis/main_table.csv` is the paper's own output of that command.
+over all six domains and scored excluding marketing and finance.
 
 ## 2. Table 4 — prediction controls
 
@@ -147,14 +145,8 @@ uv run python scripts/summarize_per_step_latency.py 'results/wm_harness_summarie
 
 The production panel runs Enterprise-JEPA with `WM_JEPA_COMPILE=1` (torch.compile + CUDA
 graphs, bucketed shapes) and the LLM world model under vLLM; the HF panel runs both
-in-process under Hugging Face Transformers on the same hardware. The figure and its CSV in
-`results/figures/` are the paper's.
-
-## 5. Table 9 — how the world model helps
-
-`docs/qualitative_analysis.md` is the attribution behind Table 9 and the worked examples in
-Appendix F.3: which task classes the world model helps, which it hurts, and one worked
-example per help class, each traced to a task id in the Table 3 runs.
+in-process under Hugging Face Transformers on the same hardware. Both the measurement JSON
+and the figure are written under `results/`.
 
 ## Cost
 
