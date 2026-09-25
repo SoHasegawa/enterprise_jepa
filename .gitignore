@@ -2,7 +2,6 @@
 **/.venv*
 .pytest_cache/
 .ruff_cache/
-.remote-inference-launcher/
 __pycache__/
 *.py[cod]
 
@@ -21,6 +20,7 @@ slurm-*.err
 # Raw run output. `results/analysis`, `results/figures` and `results/wm_latency`
 # are checked in (the paper's derived numbers); everything a fresh run produces
 # is not.
+results/experiments/
 results/wm_harness_summaries/
 results/bench_repeat_summaries/
 results/logs/

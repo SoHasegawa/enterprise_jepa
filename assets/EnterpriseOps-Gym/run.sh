@@ -69,9 +69,6 @@ MAX_TASKS_PER_DOMAIN=null
 #   export ENTERPRISEOPS_LLM_MODEL=gpt-4.1-mini
 #   export ENTERPRISEOPS_LLM_API_KEY="sk-..."
 #
-# Remote vLLM via ejepa inference config:
-#   USE_LOCAL_VLLM=0 INFERENCE_CONFIG=inference-slurm-login.yaml bash assets/EnterpriseOps-Gym/run.sh smoke
-#
 set -euo pipefail
 
 ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
@@ -96,7 +93,7 @@ fi
 unset HF_ENDPOINT 2>/dev/null || true
 
 export ENTERPRISEOPS_GYM_REPO_PATH="${ENTERPRISEOPS_GYM_REPO_PATH:-$ROOT/.cache/EnterpriseOps-Gym}"
-export BENCHMARK_HOME="${BENCHMARK_HOME:-$ROOT/.cache/benchmark home}"
+export BENCHMARK_HOME="${BENCHMARK_HOME:-$ROOT/.cache/benchmark-home}"
 export BENCHMARK_A2A_CLIENT_TIMEOUT="${BENCHMARK_A2A_CLIENT_TIMEOUT:-1800}"
 
 EJEPA="${EJEPA:-$ROOT/.venv/bin/ejepa}"
@@ -424,7 +421,7 @@ configure_vllm_llm_env() {
 }
 
 configure_llm() {
-  if [[ "$USE_LOCAL_VLLM" == "1" && -z "${INFERENCE_CONFIG:-}" ]]; then
+  if [[ "$USE_LOCAL_VLLM" == "1" ]]; then
     local served_id
     served_id="$(vllm_served_model_id "$VLLM_MODEL")" || exit 1
     if [[ "$START_VLLM" == "1" ]]; then
@@ -434,15 +431,6 @@ configure_llm() {
       wait_local_vllm "$served_id"
     fi
     configure_vllm_llm_env "$VLLM_MODEL"
-    return 0
-  fi
-
-  if [[ -n "${INFERENCE_CONFIG:-}" ]]; then
-    export ENTERPRISEOPS_LLM_PROVIDER="${ENTERPRISEOPS_LLM_PROVIDER:-vllm}"
-    export ENTERPRISEOPS_LLM_TEMPERATURE="${ENTERPRISEOPS_LLM_TEMPERATURE:-0.0}"
-    export ENTERPRISEOPS_LLM_MAX_TOKENS="${ENTERPRISEOPS_LLM_MAX_TOKENS:-8192}"
-    unset ENTERPRISEOPS_LLM_API_ENDPOINT ENTERPRISEOPS_LLM_MODEL ENTERPRISEOPS_LLM_API_KEY
-    unset ENTERPRISEOPS_LLM_API_VERSION ENTERPRISEOPS_LLM_CONFIG_FILE 2>/dev/null || true
     return 0
   fi
 
@@ -477,14 +465,14 @@ Missing LLM configuration. Defaults to local vLLM via:
   $EWM_VLLM_SCRIPTS
 
 Set VLLM_MODEL (default: $VLLM_MODEL) and ensure VLLM_VENV points at a vLLM install, or use:
-  USE_LOCAL_VLLM=0 INFERENCE_CONFIG=/path/to/inference.yaml
+  USE_LOCAL_VLLM=0 with ENTERPRISEOPS_LLM_API_ENDPOINT pointing at a served model
   ENTERPRISEOPS_LLM_API_KEY + ENTERPRISEOPS_LLM_PROVIDER + ENTERPRISEOPS_LLM_MODEL
 EOF
   exit 1
 }
 
 maybe_stop_vllm_on_exit() {
-  if [[ "$STOP_VLLM_ON_EXIT" == "1" && "$USE_LOCAL_VLLM" == "1" && -z "${INFERENCE_CONFIG:-}" ]]; then
+  if [[ "$STOP_VLLM_ON_EXIT" == "1" && "$USE_LOCAL_VLLM" == "1" ]]; then
     log "Stopping local vLLM on :8020 ..."
     stop_local_vllm
   fi
@@ -687,9 +675,6 @@ EJEPA_ARGS=(
   --ready-timeout "$READY_TIMEOUT"
 )
 
-if [[ -n "${INFERENCE_CONFIG:-}" ]]; then
-  EJEPA_ARGS+=(--inference-config "$INFERENCE_CONFIG")
-fi
 if [[ "$SHOW_LOGS" == "1" ]]; then
   EJEPA_ARGS+=(--show-logs)
 fi

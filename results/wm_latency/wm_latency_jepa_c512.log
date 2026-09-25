@@ -1,5 +1,0 @@
-[Enterprise-JEPA / transformers] loading world model...
-Loading weights:   0%|          | 0/310 [00:00<?, ?it/s]Loading weights: 100%|██████████| 310/310 [00:00<00:00, 6275.35it/s]
-[Enterprise-JEPA / transformers] horizon= 3 0.337+-0.074s/call (mean of 3) 0.7ms/trajectory 0.22ms/transition
-[Enterprise-JEPA / transformers] horizon=10 0.836+-0.068s/call (mean of 3) 1.6ms/trajectory 0.16ms/transition
-Wrote out/wm_latency/wm_latency_jepa_c512.json

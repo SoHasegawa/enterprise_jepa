@@ -151,12 +151,8 @@ rep) to be recorded here when the sweep finishes._
 ## Reproducibility
 
 ```bash
-# 5-run baseline on the fixed test split (submits detached Slurm jobs,
-# one 8-GPU node per run, node-local Qwen3.6-27B vLLM):
-scripts/run_crmarenapro_qwen36_baseline_slurm.sh
-
-# equivalently, per run (task_limit=0 = full split; benchmark.toml defaults
-# task_limit=1, which would otherwise truncate the split to a single task):
+# Baseline on the fixed test split, repeated five times (task_limit=0 = full split;
+# benchmark.toml defaults task_limit=1, which would truncate it to a single task):
 ejepa --result-root <dir> bench run crmarenapro \
   --launcher local --ready-timeout 600 \
   --executor baseline_crm_agent \

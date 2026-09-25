@@ -84,3 +84,37 @@ def test_prior_rows_from_file(tmp_path):
 def test_none_is_identity():
     traj = [rows([0.1])]
     assert jepa.apply_prediction_control(traj, [[0.1]], None, vocab=VOCAB) == (traj, [[0.1]])
+
+
+def test_no_state_ties_every_candidate_and_withholds_terminal_advice():
+    """The no-predicted-state arm must leave candidate ranking to the policy's own order.
+
+    Reviewer-requested ablation: keep candidate generation, the reflection instructions
+    and the policy-call budget, remove the learned predictions. Every candidate must
+    therefore receive an identical row, so the stable sort in ``rank_trajectories``
+    falls through to the first candidate, and the terminal probability must be zero so
+    no early-stop advice is derived from a prediction.
+    """
+    from ejepa_wm.backends._ewm_jepa import apply_prediction_control, resolve_prediction_control
+
+    assert resolve_prediction_control("no_state") == "no_state"
+
+    vocab = {"execution_status": ["success", "failure"], "action_kind": ["read", "write", "other"]}
+    trajectories = [
+        [{"execution_status": {"success": 0.9, "failure": 0.1}}, {"execution_status": {"success": 0.2, "failure": 0.8}}],
+        [{"execution_status": {"success": 0.4, "failure": 0.6}}],
+    ]
+    terminal = [[0.7, 0.9], [0.1]]
+
+    rows, terms = apply_prediction_control(trajectories, terminal, "no_state", vocab=vocab)
+
+    flat = [row for traj in rows for row in traj]
+    assert len(flat) == 3
+    assert all(row == flat[0] for row in flat), "candidates must be indistinguishable"
+    assert flat[0]["execution_status"] == {"success": 0.5, "failure": 0.5}
+    assert flat[0]["action_kind"] == {"read": 1 / 3, "write": 1 / 3, "other": 1 / 3}
+    assert terms == [[0.0, 0.0], [0.0]], "no terminal advice may survive"
+
+    # uniform keeps terminal advice live; the two arms must not collapse into one
+    _, uniform_terms = apply_prediction_control(trajectories, terminal, "uniform", vocab=vocab)
+    assert uniform_terms == [[0.5, 0.5], [0.5]]

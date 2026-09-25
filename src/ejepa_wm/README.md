@@ -490,7 +490,7 @@ histories the eager and compiled paths agreed on the top plan 24/24 with Spearma
 (max |score diff| 0.035 vs a within-call spread of 2.3). `WM_JEPA_COMPILE=default` compiles
 without CUDA graphs (~27 ms). The first call per new (batch, length) bucket compiles/captures
 (~60 s for the first), so pair it with `WM_SHARE_MODEL_WEIGHTS=1` rather than compiling per task;
-the default remains eager. `scripts/profile_jepa_scoring.py` reproduces the per-stage profile.
+the default remains eager.
 
 ### Open-loop planning (`WM_IMAGINED_ROLLOUT_MODE` / `--wm-imagined-rollout-mode`)
 

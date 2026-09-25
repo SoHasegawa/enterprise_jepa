@@ -1,7 +1,6 @@
 """Shared palette, styling and data extraction for the world-model figures.
 
-Used by ``plot_wm_latency_vs_horizon.py`` (panel 1), ``plot_success_latency_pareto.py``
-(panel 2) and ``plot_task_time_decomposition.py`` (supplementary).
+Used by ``plot_wm_latency_hf_vs_production.py`` (paper Figures 2 and 4).
 
 Every figure script writes the CSV it plotted next to the image: two palette slots
 sit below 3:1 contrast on the print surface, and the data-viz relief rule requires

@@ -34,7 +34,7 @@ ROOT="$(cd "$(dirname "$0")/../.." && pwd)"
 BENCH_DIR="$ROOT/assets/EnterpriseOps-Gym"
 cd "$ROOT"
 
-export BENCHMARK_HOME="${BENCHMARK_HOME:-$ROOT/.cache/benchmark home}"
+export BENCHMARK_HOME="${BENCHMARK_HOME:-$ROOT/.cache/benchmark-home}"
 export BENCHMARK_A2A_CLIENT_TIMEOUT="${BENCHMARK_A2A_CLIENT_TIMEOUT:-3600}"
 
 # ---- run.sh delegation (agent + MCP + ejepa) --------------------------------

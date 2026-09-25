@@ -5,6 +5,32 @@ world-model research repository. Everything needed for the paper's claims is her
 of things that lived alongside it are not. This file records both, so that a difference between
 this code and the code that produced the recorded runs is never a surprise.
 
+## Scope: what the paper reports
+
+The repository carries the experiments the paper reports and nothing else. Mapping:
+
+| Paper | Here |
+|---|---|
+| Table 2, Figure 3 — next-state prediction | `training/` (Stage-2 eval metrics) |
+| Table 3 — task success rates | `scripts/run_main_table_repeats.sh`, `summarize_main_table.py`, `summarize_row_averages.py` |
+| Table 4 — prediction controls | `scripts/run_prediction_controls.sh` (`no_state`, `shuffled`) |
+| Table 5 — vs the tool-output LLM-WM | the `agentworld` arm of `run_main_table_repeats.sh` |
+| Table 6 — Stage-1 trajectory sources | `training/src/generation/generate_adp_world_model_trajectories.py` |
+| Table 9 — help mechanisms | `docs/qualitative_analysis.md` |
+| Table 10 — planning-budget ablation | `scripts/run_beam_ablation.sh`, `summarize_beam_ablation.py` |
+| Figures 2, 4 — beam-search latency | `scripts/measure_wm_latency_vs_horizon.py`, `plot_wm_latency_hf_vs_production.py` |
+
+Measurements that were made during the work but are **not** in the paper were removed with
+their scripts, figures and write-ups: the cost-matched world-model comparison, the
+success-latency Pareto figure, the task-time decomposition figure, the beam-width latency
+sweep, the JEPA per-stage profile, per-task token accounting, the behavioural-metrics CSV,
+and the critic-triggered (`beam_critic`) harness. Two prediction-control arms that the code
+still supports (`uniform`, `prior`) are likewise not reported.
+
+The remote-inference launcher (SSH/Slurm-managed vLLM) is also gone: the paper serves the
+agent and the world models locally on one H200 (Appendix E.1), so the CLI now expects
+endpoints that are already running.
+
 ## What was dropped
 
 * **Other benchmarks.** The source monorepo carries ~15 benchmark assets. Only the five the

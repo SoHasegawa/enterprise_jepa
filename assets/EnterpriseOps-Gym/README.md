@@ -50,7 +50,6 @@ EnterpriseOps-Gym/
 - **Docker** or **Singularity/Apptainer** (for the per-domain MCP servers)
 - `**uv`** (for syncing the per-component virtual environments)
 - An LLM API key for at least one provider supported by the upstream framework, **or** remote
-  inference via Slurm (see [Remote inference (Slurm cluster)](#remote-inference-slurm-login-cluster))
 
 ```bash
 # Ubuntu — install system packages
@@ -167,8 +166,9 @@ You should see `(healthy)` for each container and `HTTP 307` (or `HTTP 200`) for
 
 ### 4. Configure the LLM used by the executor
 
-Use hosted APIs (Azure OpenAI, OpenAI, Anthropic, …) **or** [remote inference on Slurm](#remote-inference-slurm-login-cluster)
-with `--inference-config` and `ENTERPRISEOPS_LLM_PROVIDER=vllm`.
+Use hosted APIs (Azure OpenAI, OpenAI, Anthropic, …) or a locally served model with
+`ENTERPRISEOPS_LLM_PROVIDER=vllm` and `ENTERPRISEOPS_LLM_API_ENDPOINT` (what the paper's
+runs use).
 
 Either provide a JSON config file (recommended — same format as upstream's `conf/llm/*.json`) …
 
@@ -206,244 +206,10 @@ For `planner_react` or `decomposing` orchestrators, also export
 By default Green writes results under `$BENCHMARK_HOME/experiments`. On a stock machine, override that:
 
 ```bash
-export BENCHMARK_HOME="$HOME/eog-benchmark home"
+export BENCHMARK_HOME="$HOME/eog-benchmark-home"
 # or, more directly:
 # export BENCHMARK_RESULT_ROOT="$HOME/eog-experiments"
 ```
-
-## Remote inference (Slurm cluster)
-
-EnterpriseOps-Gym can drive a **remote vLLM server on the Slurm Slurm cluster** instead of
-calling a hosted API directly. The benchmarks repo ships
-[`remote-inference-launcher`](../../packages/remote-inference-launcher/README.md); `ejepa bench run`
-starts the remote endpoint, opens an SSH tunnel to your laptop, and injects generic env vars
-(`OPENAI_BASE_URL`, `OPENAI_MODEL_NAME`) that the `mcp_react` executor forwards to the upstream
-`vllm` provider.
-
-**Architecture**
-
-```text
-[Your laptop]                         [Slurm]
-  ejepa bench run                          Slurm + vLLM (Qwen3.5)
-  Green/Purple + MCP containers  ──►  OpenAI-compatible /v1 API
-  (localhost:8001–8009)                  (GPU node via SSH tunnel)
-```
-
-MCP server containers still run **locally** on the machine that executes `ejepa`. Only the LLM
-inference is remote.
-
-### Prerequisites
-
-Complete [Setup](#setup) sections 1–3 and 5 first. In addition:
-
-- SSH access to Slurm (`ssh slurm-login`) — see
-  [`remote-inference-launcher` SSH setup](../../packages/remote-inference-launcher/README.md#ssh-setup)
-- Root workspace synced: `uv sync` at the benchmarks repo root
-- A bootstrapped vLLM environment on Slurm (one-time)
-- For full-corpus runs: all domain MCP containers running (section 3) and green HF extra installed
-  (`uv sync --project assets/EnterpriseOps-Gym/green --extra hf`)
-
-### One-time: bootstrap vLLM on Slurm
-
-Create `bootstrap-slurm-login.yaml` at the repo root (**no `kind` field** — used with
-`slurm-vllm-bootstrap` directly):
-
-```yaml
-ssh_target: slurm-login
-environment_name: qwen35-vllm-cu129
-venv_path: ~/.qwen35-vllm-cu129
-partition: batch-2gpu
-walltime: "1:00:00"
-num_gpus: 1
-memory: 32GB
-cpus_per_task: 4
-vllm_package: vllm==0.19.1
-install_uv_if_missing: true
-```
-
-```bash
-cd /path/to/benchmarks
-uv run remote-inference-launcher slurm-vllm-bootstrap \
-  --config bootstrap-slurm-login.yaml
-```
-
-Note the printed `python_bin` (for example `~/.qwen35-vllm-cu129/bin/python`) for the serving config.
-
-### Inference config
-
-The repo includes [`inference-slurm-login.yaml`](../../inference-slurm-login.yaml) for Qwen/Qwen3.5-27B.
-Important fields:
-
-| Field | Purpose |
-| ----- | ------- |
-| `kind: slurm_vllm` | Required for `ejepa --inference-config` / `remote-inference-launcher start` |
-| `ssh_target: slurm-login` | SSH alias for the Slurm login node |
-| `python_bin` | Path from bootstrap step |
-| `partition`, `walltime`, `num_gpus`, `memory` | Slurm allocation — must fit partition limits (`sinfo` on Slurm) |
-| `extra_args` | vLLM flags for tool calling (required by `mcp_react`) |
-| `setup_cmd` | Installs `ninja` on the GPU node (FlashInfer JIT needs it at first inference) |
-
-Tool-calling flags validated on vLLM 0.19.1:
-
-```yaml
-extra_args:
-  - --enable-auto-tool-choice
-  - --tool-call-parser
-  - qwen3_coder
-setup_cmd: |
-  export PATH="$HOME/.qwen35-vllm-cu129/bin:$PATH"
-  python -m pip install -q ninja
-```
-
-Do **not** use `--tool-call-parser qwen3` on vLLM 0.19.1 — that parser name is invalid and the
-Slurm job will fail at startup.
-
-Set `walltime` to the **maximum allowed by your partition** (for example `24:00:00` on
-`batch-8gpu`). Values above the partition limit leave the job stuck in `PENDING`
-(`PartitionTimeLimit`).
-
-### Executor wiring
-
-For remote vLLM, set the upstream provider to `vllm` and **clear any hosted-API overrides** so
-`ejepa --inference-config` can inject the tunneled endpoint:
-
-```bash
-export ENTERPRISEOPS_LLM_PROVIDER=vllm
-export ENTERPRISEOPS_LLM_TEMPERATURE=0.0
-export ENTERPRISEOPS_LLM_MAX_TOKENS=8192
-export BENCHMARK_A2A_CLIENT_TIMEOUT=1800
-
-unset ENTERPRISEOPS_LLM_API_ENDPOINT ENTERPRISEOPS_LLM_MODEL ENTERPRISEOPS_LLM_API_KEY
-unset ENTERPRISEOPS_LLM_API_VERSION ENTERPRISEOPS_LLM_CONFIG_FILE
-unset AZURE_OPENAI_API_KEY AZURE_OPENAI_ENDPOINT 2>/dev/null || true
-```
-
-`ejepa` sets `OPENAI_BASE_URL` and `OPENAI_MODEL_NAME` from the inference config; `mcp_react` maps
-those to the upstream `vllm` client automatically.
-
-### Smoke test (one sample task)
-
-Requires only `gym-calendar` on `localhost:8003`.
-
-```bash
-cd /path/to/benchmarks
-export ENTERPRISEOPS_GYM_REPO_PATH="${ENTERPRISEOPS_GYM_REPO_PATH:-$PWD/.cache/EnterpriseOps-Gym}"
-export BENCHMARK_HOME="${BENCHMARK_HOME:-$PWD/.cache/benchmark home}"
-export ENTERPRISEOPS_LLM_PROVIDER=vllm
-export ENTERPRISEOPS_LLM_TEMPERATURE=0.0
-export ENTERPRISEOPS_LLM_MAX_TOKENS=8192
-
-ejepa bench run EnterpriseOps-Gym \
-  --executor mcp_react \
-  --inference-config inference-slurm-login.yaml \
-  --config target=sample \
-  --task-id enterpriseops_sample_calendar_001 \
-  --ready-timeout 600 \
-  --show-logs
-```
-
-The first run waits several minutes while Slurm submits Slurm, loads Qwen3.5-27B, and opens the SSH
-tunnel. `Connection refused` on the local port during that window is normal.
-
-### Full corpus with trajectory capture
-
-For all ~1,150 tasks across every domain, start **all** MCP containers (section 3), then either
-use the helper script or run `ejepa` directly.
-
-Helper script (checks MCP ports, logs to `.cache/benchmark home/logs/`):
-
-```bash
-scripts/run_enterpriseops_slurm_qwen_full.sh
-```
-
-Equivalent `ejepa` command:
-
-```bash
-ejepa bench run EnterpriseOps-Gym \
-  --executor mcp_react \
-  --inference-config inference-slurm-login.yaml \
-  --config target=hf_dataset \
-  --config mode=oracle \
-  --config 'domains=["calendar","csm","drive","email","hr","hybrid","itsm","teams"]' \
-  --config capture_trajectory=true \
-  --config max_parallel=1 \
-  --ready-timeout 600 \
-  --show-logs
-```
-
-Omit `max_tasks_per_domain` to run the full Hugging Face split per domain. Trajectories are
-written under `<result_dir>/trajectories/<task_id>.jsonl` (see [Trajectory Capture](#trajectory-capture)).
-
-Tune concurrency with `MAX_PARALLEL=1 scripts/run_enterpriseops_slurm_qwen_full.sh` or
-`--config max_parallel=N`. Keep `max_parallel=1` unless you run multiple vLLM endpoints (fleet
-config) — a single remote server is easier to saturate with concurrent tool-calling requests.
-
-### Two-terminal workflow (reuse a running endpoint)
-
-To avoid submitting a new Slurm job on every `ejepa` invocation, keep inference alive in one
-terminal and point the benchmark at it from another.
-
-Terminal 1 — start and hold remote vLLM:
-
-```bash
-uv run remote-inference-launcher start \
-  --config inference-slurm-login.yaml \
-  --env-file /tmp/inference.env
-```
-
-Terminal 2 — run the benchmark without `--inference-config`:
-
-```bash
-source /tmp/inference.env
-export ENTERPRISEOPS_LLM_PROVIDER=vllm
-export ENTERPRISEOPS_LLM_TEMPERATURE=0.0
-export ENTERPRISEOPS_LLM_MAX_TOKENS=8192
-
-ejepa bench run EnterpriseOps-Gym \
-  --executor mcp_react \
-  --config target=sample \
-  --task-id enterpriseops_sample_calendar_001 \
-  --ready-timeout 600 \
-  --show-logs
-```
-
-Alternatively, use an `existing_endpoint` config if the tunnel is already up:
-
-```yaml
-# inference-local.yaml
-kind: existing_endpoint
-api_base: http://127.0.0.1:36311/v1   # your local tunnel port
-served_model_name: Qwen/Qwen3.5-27B
-```
-
-```bash
-ejepa bench run EnterpriseOps-Gym \
-  --executor mcp_react \
-  --inference-config inference-local.yaml \
-  ...
-```
-
-### Troubleshooting
-
-| Symptom | Likely cause | Fix |
-| ------- | ------------ | --- |
-| Slurm job `PENDING (PartitionTimeLimit)` | `walltime` exceeds partition max | Lower `walltime` in `inference-slurm-login.yaml`; check `sinfo` on Slurm |
-| `Connection refused` while waiting | vLLM still loading | Wait; tail remote `vllm.log` under the path printed by the launcher |
-| `invalid tool call parser: qwen3` | Wrong parser name for vLLM 0.19.1 | Use `qwen3_coder` in `extra_args` |
-| `auto tool choice requires --enable-auto-tool-choice` | Missing vLLM tool flags | Add `--enable-auto-tool-choice` and `--tool-call-parser qwen3_coder` |
-| `FileNotFoundError: ninja` on first chat | FlashInfer JIT on GPU node | Keep `setup_cmd` that installs `ninja`, or bootstrap `ninja` into the venv |
-| Benchmark hits Azure/hosted URL instead of tunnel | Stale `ENTERPRISEOPS_LLM_*` or Azure env | `unset` hosted-API vars before `ejepa bench run` (see above) |
-| `unsupported Slurm vLLM bootstrap fields: kind` | `kind` in bootstrap YAML | Remove `kind` for `slurm-vllm-bootstrap`; use `kind: slurm_vllm` only with `start` / `ejepa --inference-config` |
-
-Remote logs on Slurm:
-
-```bash
-ssh slurm-login 'tail -f ~/tmp/remote-inference-launcher/slurm-vllm/*/vllm.log'
-```
-
-More detail: [`packages/remote-inference-launcher/README.md`](../../packages/remote-inference-launcher/README.md).
-
----
 
 ## Quick Start
 
@@ -482,13 +248,6 @@ ejepa bench run EnterpriseOps-Gym --executor mcp_react \
   --config domain=teams \
   --config max_tasks_per_domain=10
 
-# Remote inference smoke test (Slurm + Qwen3.5) — see Remote inference section.
-ejepa bench run EnterpriseOps-Gym --executor mcp_react \
-  --inference-config inference-slurm-login.yaml \
-  --config target=sample \
-  --task-id enterpriseops_sample_calendar_001 \
-  --ready-timeout 600 \
-  --show-logs
 ```
 
 ## Trajectory Capture

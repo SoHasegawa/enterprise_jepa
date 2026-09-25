@@ -79,11 +79,23 @@ FAST_INFERENCE_PAD_MULTIPLE_ENV = "WM_JEPA_PAD_MULTIPLE"
 #                                        the multi-label field and terminal)
 #   WM_JEPA_PREDICTION_CONTROL=prior     training-set class priors from the JSON
 #                                        at WM_JEPA_PRIOR_PATH, no input conditioning
+#   WM_JEPA_PREDICTION_CONTROL=no_state  no predicted state reaches the planner at all:
+#                                        every candidate gets an identical constant row
+#                                        and terminal probability zero, so scores tie and
+#                                        the stable sort in rank_trajectories falls
+#                                        through to the policy's own first candidate.
+#                                        Candidate generation, the reflection and critic
+#                                        instructions, the refinement rounds and the
+#                                        policy-call budget are untouched, which isolates
+#                                        the scaffolding from the learned predictions.
+#                                        Distinct from `uniform`, which also supplies a
+#                                        constant row but keeps terminal advice live at
+#                                        probability 0.5.
 #   unset / none                         real predictions (the default)
 PREDICTION_CONTROL_ENV = "WM_JEPA_PREDICTION_CONTROL"
 PREDICTION_PRIOR_PATH_ENV = "WM_JEPA_PRIOR_PATH"
 PREDICTION_CONTROL_SEED_ENV = "WM_JEPA_CONTROL_SEED"
-PREDICTION_CONTROLS = ("shuffled", "uniform", "prior")
+PREDICTION_CONTROLS = ("shuffled", "uniform", "prior", "no_state")
 
 
 def resolve_prediction_control(value: Optional[str] = None) -> Optional[str]:
@@ -140,13 +152,14 @@ def apply_prediction_control(
             if terms[src] is not None and p < len(new_term) and t < len(new_term[p]):
                 new_term[p][t] = terms[src]
         return new_traj, new_term
-    if mode == "uniform":
+    if mode in ("uniform", "no_state"):
         row = {
             field: {c: (0.5 if field in multi_label_fields else 1.0 / len(classes)) for c in classes}
             for field, classes in vocab.items()
             if classes
         }
-        term_p = 0.5
+        # no_state withholds terminal advice too: a terminal probability is a prediction.
+        term_p = 0.0 if mode == "no_state" else 0.5
     elif mode == "prior":
         if priors is None:
             raise ValueError("prior control needs class priors")

@@ -48,12 +48,9 @@ from common.executor_runtime import (
     format_executor_runtime_notes,
     resolve_executor_runtime_payload,
 )
-from common.inference_runtime import prepare_inference_runtime_config
-from common.inference_runtime import (
-    translate_termination_signals as _translate_termination_signals,
-)
 from common.logging_utils import configure_logging, get_logger
 from common.network_env import ensure_no_proxy
+from common.signals import translate_termination_signals as _translate_termination_signals
 from common.storage import (
     default_result_root,
 )
@@ -245,7 +242,6 @@ class BenchmarkRunContext:
     ready_timeout: int
     show_logs: bool
     serve_only: bool
-    inference_config: Path | None
 
 
 @dataclass(slots=True)
@@ -1010,7 +1006,6 @@ def _build_slurm_passthrough_args(
     workdir: Path,
     show_logs: bool,
     serve_only: bool,
-    inference_config: Path | None,
 ) -> list[str]:
     """組み込み sbatch script へ渡す `ejepa bench run` 引数を返す。"""
     args = [
@@ -1051,8 +1046,6 @@ def _build_slurm_passthrough_args(
         args.append("--show-logs")
     if serve_only:
         args.append("--serve-only")
-    if inference_config is not None:
-        args.extend(["--inference-config", str(inference_config)])
     return args
 
 
@@ -1127,7 +1120,6 @@ def _submit_benchmark_run_via_slurm(
         workdir=run_context.workdir,
         show_logs=run_context.show_logs,
         serve_only=run_context.serve_only,
-        inference_config=run_context.inference_config,
     )
     command = _build_sbatch_command(
         sbatch_bin=sbatch_bin,
@@ -2342,11 +2334,6 @@ def _render_slurm_submission(
                         f"Ready Timeout: {run_context.ready_timeout}",
                         f"Slurm Script: {submission.script_path}",
                         f"Slurm Exclude: {slurm_exclude or '—'}",
-                        (
-                            f"Inference  : {run_context.inference_config}"
-                            if run_context.inference_config is not None
-                            else None
-                        ),
                         f"Job ID      : {submission.job_id or 'unknown'}",
                         f"sbatch      : {submission.stdout or 'submitted'}",
                     ],
@@ -2410,48 +2397,6 @@ def _render_benchmark_run_panel(run_context: BenchmarkRunContext, result_dir: Pa
             border_style="cyan",
         )
     )
-
-
-def _start_inference_runtime(
-    inference_config: Path | None,
-    env: dict[str, str],
-    *,
-    launch_summary_path: Path | None = None,
-) -> tuple[Any, Any]:
-    if inference_config is None:
-        return None, None
-
-    from common.inference_runtime import managed_inference
-
-    inference_context = managed_inference(
-        inference_config,
-        launch_summary_path=launch_summary_path,
-    )
-    inference_runtime = inference_context.__enter__()
-    inference_runtime.apply_to(env)
-    console.print(
-        Panel.fit(
-            "\n".join(
-                filter(
-                    None,
-                    [
-                        *[
-                            f"{name}: {getattr(session, 'api_base', '')}"
-                            for name, session in sorted(inference_runtime.sessions.items())
-                        ],
-                        (
-                            f"Summary: {launch_summary_path}"
-                            if launch_summary_path is not None
-                            else None
-                        ),
-                    ],
-                )
-            ),
-            title="Inference Ready",
-            border_style="green",
-        )
-    )
-    return inference_context, inference_runtime
 
 
 def _resolve_agent_endpoint(
@@ -2591,38 +2536,9 @@ def _prepare_local_benchmark_run(run_context: BenchmarkRunContext):
             config_hash=result_paths.config_hash,
         )
     )
-    inference_summary_path = (
-        result_paths.result_dir / "inference-launch-summary.json"
-        if run_context.inference_config is not None
-        else None
-    )
     run_context.workdir.mkdir(parents=True, exist_ok=True)
     _render_benchmark_run_panel(run_context, result_paths.result_dir)
-    return result_paths, env, inference_summary_path
-
-
-def _prepare_inference_runtime_for_local_run(
-    run_context: BenchmarkRunContext,
-    env: dict[str, str],
-    result_paths: Any,
-    inference_summary_path: Path | None,
-):
-    inference_context, inference_runtime = _start_inference_runtime(
-        run_context.inference_config,
-        env,
-        launch_summary_path=inference_summary_path,
-    )
-    if inference_runtime is not None:
-        prepare_inference_runtime_config(
-            runtime_config=run_context.runtime_config,
-            env=env,
-            result_paths=result_paths,
-            inference_summary_path=inference_summary_path,
-            inference_runtime=inference_runtime,
-            warn=console.print,
-            repo_root=REPO_ROOT,
-        )
-    return inference_context
+    return result_paths, env
 
 
 def _start_local_benchmark_agents(
@@ -2726,34 +2642,16 @@ def _cleanup_local_benchmark_run(
     run_context: BenchmarkRunContext,
     *,
     processes: list[subprocess.Popen[str]],
-    inference_context: Any,
     result_dir: Path,
 ) -> None:
-    active_exc_type = sys.exc_info()[0]
-    cleanup_error: Exception | None = None
+    del run_context, result_dir
     _terminate_processes(processes)
-    if inference_context is not None:
-        try:
-            inference_context.__exit__(None, None, None)
-        except Exception as exc:
-            cleanup_error = exc
-            LOGGER.exception("Failed to stop inference runtime.")
-            console.print(f"[red]Failed to stop inference runtime:[/red] {exc}")
-    if cleanup_error is not None and active_exc_type is None:
-        raise typer.Exit(code=1) from cleanup_error
 
 
 def _run_benchmark_locally(run_context: BenchmarkRunContext) -> None:
-    result_paths, env, inference_summary_path = _prepare_local_benchmark_run(run_context)
+    result_paths, env = _prepare_local_benchmark_run(run_context)
     processes: list[subprocess.Popen[str]] = []
-    inference_context = None
     try:
-        inference_context = _prepare_inference_runtime_for_local_run(
-            run_context,
-            env,
-            result_paths,
-            inference_summary_path,
-        )
         green_endpoint, participant_endpoints = _start_local_benchmark_agents(
             run_context,
             env=env,
@@ -2788,7 +2686,6 @@ def _run_benchmark_locally(run_context: BenchmarkRunContext) -> None:
         _cleanup_local_benchmark_run(
             run_context,
             processes=processes,
-            inference_context=inference_context,
             result_dir=result_paths.result_dir,
         )
 
@@ -3651,16 +3548,6 @@ def benchmark_run(
     serve_only: Annotated[
         bool, typer.Option("--serve-only", help="サーバーだけ起動して待機する。")
     ] = False,
-    inference_config: Annotated[
-        Path | None,
-        typer.Option(
-            "--inference-config",
-            exists=True,
-            dir_okay=False,
-            resolve_path=True,
-            help="benchmark 実行前に起動する inference launcher YAML config。",
-        ),
-    ] = None,
 ) -> None:
     """ベンチマークを実行、または Slurm へ送信する。"""
     # The World Model is pluggable regardless of executor: surface it as first-class CLI
@@ -3914,7 +3801,6 @@ def benchmark_run(
         ready_timeout=effective_ready_timeout,
         show_logs=show_logs,
         serve_only=serve_only,
-        inference_config=inference_config,
     )
 
     if launcher is ExecutionLauncher.slurm:

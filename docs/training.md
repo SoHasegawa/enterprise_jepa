@@ -42,6 +42,16 @@ These read benchmark run output (`BENCHMARK_RESULT_ROOT`) and write into
 MB. Task-level train/eval disjointness is enforced by the split manifests, not by a random
 row split, so the same task never appears on both sides.
 
+That yields the paper's **small corpus** (4,515 trajectories from the two in-distribution
+benchmarks). The **expanded corpus** (316,200 trajectories) adds filtered tool-use and
+software-engineering trajectories from the Agent Data Protocol release; convert them with
+
+```bash
+uv run python src/generation/generate_adp_world_model_trajectories.py
+```
+
+one output file per ADP subset. Paper Table 6 lists the sources and their counts.
+
 ## Stage 2 — canonical-event labels
 
 Each action gets a canonical event label, assigned by an LLM labeller and then cleaned:

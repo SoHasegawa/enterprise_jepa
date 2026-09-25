@@ -3,9 +3,16 @@
 #
 # The identical beam_interval planner (s=8, h=3, execute 2, open loop -- the paper's
 # configuration) with the JEPA world model's per-step predictions replaced by
+#   no_state  no predicted state reaches the planner at all (paper Table 4,
+#             "No world model feedback")
 #   shuffled  the model's own rows permuted across (plan, step) within each call
-#   uniform   1/K over every field's classes
-#   prior     training-set class priors (results/analysis/canonical_event_class_priors.json)
+#             (paper Table 4, "Shuffled predictions")
+#   uniform   1/K over every field's classes                    (not reported)
+#   prior     training-set class priors                          (not reported)
+#             (results/analysis/canonical_event_class_priors.json)
+#
+# Paper Table 4 is the EnterpriseOps-Gym column of the first two modes:
+#   MODES="no_state shuffled" BENCHES=EnterpriseOps-Gym scripts/run_prediction_controls.sh
 # (WM_JEPA_PREDICTION_CONTROL in src/ejepa_wm/backends/_ewm_jepa.py). Each benchmark
 # uses the agent/target/settings of the real-prediction run it is compared with:
 #   EnterpriseOps-Gym  opsgym_80_test, Qwen3.6-27B @18043, mp=3   (x EOPS_REPEATS)
@@ -19,8 +26,8 @@
 #   nohup scripts/run_prediction_controls.sh > results/logs/beam_ablation/controls.out 2>&1 &
 set -uo pipefail
 cd "$(dirname "$0")/.."
-MODES="${MODES:-shuffled uniform prior}"
-BENCHES="${BENCHES:-EnterpriseOps-Gym WorkBench AutomationBench crmarenapro}"
+MODES="${MODES:-no_state shuffled}"
+BENCHES="${BENCHES:-EnterpriseOps-Gym}"
 EOPS_REPEATS="${EOPS_REPEATS:-3}"
 AB_TARGETS="${AB_TARGETS:-sales operations support}"
 S="${S:-8}"; H="${H:-3}"; E="${E:-2}"
@@ -45,7 +52,10 @@ export WORKBENCH_VLLM_BASE_URL="$QWEN_URL" WORKBENCH_VLLM_MODEL="$QWEN_MODEL" WO
 export LLM_PROVIDER=openai_compatible LLM_MODEL="$CRM_MODEL" LLM_BASE_URL="$CRM_URL" LLM_API_KEY=EMPTY MAX_TURNS=20
 
 LOG_DIR=results/logs/beam_ablation; SUMMARY_DIR=results/wm_harness_summaries; mkdir -p "$LOG_DIR"
-[[ -f "$WM_JEPA_PRIOR_PATH" ]] || { echo "priors file missing: $WM_JEPA_PRIOR_PATH"; exit 2; }
+case " $MODES " in
+  *" prior "*) [[ -f "$WM_JEPA_PRIOR_PATH" ]] ||
+    { echo "priors file missing: $WM_JEPA_PRIOR_PATH"; exit 2; } ;;
+esac
 need=()
 [[ " $BENCHES " == *"crmarenapro"* ]] && need+=("$CRM_URL|$CRM_MODEL")
 [[ " $BENCHES " == *"EnterpriseOps-Gym"* || " $BENCHES " == *"AutomationBench"* || " $BENCHES " == *"WorkBench"* ]] && need+=("$QWEN_URL|$QWEN_MODEL")

@@ -164,7 +164,7 @@ python scripts/run_wm_harnesses.py --label automationbench-jepa \
 `tool_calls`, `model_calls`, `steps`, `failed_tool_calls` and `purple_tools_used`. With
 `--config capture_trajectory=true` each task also gets a JSONL trajectory that includes the
 executor's `internal_trajectory` artifact (per-step tool calls and `wm_steps`), which is what
-`scripts/summarize_wm_behavior_metrics.py` and `scripts/run_bench_repeated.py` read.
+`scripts/run_bench_repeated.py` reads.
 
 ## Known limitations
 

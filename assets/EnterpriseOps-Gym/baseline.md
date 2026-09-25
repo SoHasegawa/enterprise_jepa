@@ -362,7 +362,7 @@ Expected wall-clock time:
 - Full `run.sh` with vLLM restart each run: **~30–33 min** for 5 runs
 
 Results land under `${BENCHMARK_HOME}/experiments/` (default:
-`.cache/benchmark home/experiments/`). Each run writes `manifest.json` and `detail.json`.
+`.cache/benchmark-home/experiments/`). Each run writes `manifest.json` and `detail.json`.
 
 Single-task smoke:
 

@@ -71,8 +71,8 @@ export WM_VLLM_BASE_URL=http://127.0.0.1:9015/v1 WM_VLLM_API_KEY=EMPTY   # LLM w
 
 `WM_JEPA_COMPILE=1` enables `torch.compile` + CUDA graphs for JEPA inference (≈3-4x faster
 per scoring call, ~60 s of one-off compilation). It is rank-equivalent but was **off** for
-the reported accuracy runs, and should stay off when reproducing them; the efficiency
-section uses it deliberately (see `docs/efficiency_analysis.md`).
+the reported accuracy runs and should stay off when reproducing them; the production panel
+of the latency figure (paper Figure 2) uses it deliberately.
 
 ## 5. Check the install
 

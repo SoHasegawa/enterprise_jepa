@@ -106,7 +106,7 @@ case "$BENCH" in
     export TERMINAL_BENCH_LLM_BASE_URL="$AGENT_URL" TERMINAL_BENCH_LLM_MODEL="$AGENT_NAME"
     export TERMINAL_BENCH_LLM_API_KEY=EMPTY
     export OPENAI_BASE_URL="$AGENT_URL" OPENAI_API_KEY=EMPTY
-    # The task repo is not at the benchmark home default path on this machine; point at the
+    # The task repo is not at the default path on this machine; point at the
     # checkout explicitly or task_loader raises FileNotFoundError.
     export TERMINAL_BENCH_TASK_REPO="${TERMINAL_BENCH_TASK_REPO:-$PWD/upstreams/terminal-bench-2}"
     export TERMINAL_BENCH_WORKSPACE="${TERMINAL_BENCH_WORKSPACE:-/tmp/tb-workspace}"

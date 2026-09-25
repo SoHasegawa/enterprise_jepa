@@ -52,25 +52,27 @@ JEPA_GPU=0 BENCH=AutomationBench AGENT_URL=http://127.0.0.1:18045/v1 AGENT_NAME=
 `docs/reproduction.md` maps every table and figure to the command that produces it and the
 summarizer that turns runs into the reported number. In outline:
 
-| Result | Run | Summarize |
+| Paper | Run | Summarize |
 |---|---|---|
-| Main success-rate table | `scripts/run_main_table_repeats.sh` (per benchmark) | `scripts/summarize_main_table.py` |
-| Planning-budget ablation | `scripts/run_beam_ablation.sh` | `scripts/summarize_beam_ablation.py` |
-| Prediction controls | `scripts/run_prediction_controls.sh` | `scripts/summarize_wm_harness_summaries.py` |
-| Cost-matched comparison | `scripts/run_eops_cost_matched.sh` | `scripts/summarize_per_step_latency.py` |
-| Latency figures | `scripts/measure_wm_latency_vs_horizon.py` | `scripts/plot_wm_latency_*.py` |
-| Behaviour metrics | (reuses the runs above) | `scripts/summarize_wm_behavior_metrics.py` |
+| Table 3 (task success rates) | `scripts/run_main_table_repeats.sh` (per benchmark) | `scripts/summarize_main_table.py` |
+| Table 4 (prediction controls) | `scripts/run_prediction_controls.sh` | `scripts/summarize_wm_harness_summaries.py` |
+| Table 5 (vs the tool-output LLM-WM) | `WORLD_MODELS=agentworld scripts/run_main_table_repeats.sh` | `scripts/summarize_main_table.py` |
+| Table 10 (planning-budget ablation) | `scripts/run_beam_ablation.sh` | `scripts/summarize_beam_ablation.py` |
+| Figures 2 and 4 (latency) | `scripts/measure_wm_latency_vs_horizon.py` | `scripts/plot_wm_latency_hf_vs_production.py` |
+| Table 2 (next-state prediction) | Stage-2 training (`docs/training.md`) | the trainer's `run_summary.json` |
 
 The fixed configuration behind every number — eight candidate plans, imagination horizon
 three, two executed steps per re-plan, open-loop rollouts, score margin 0.10, temperature
 0.7, one refinement round over the top four, terminal advice at 0.75 — is stated with its
 flags in `docs/main_table_protocol.md`, along with the per-benchmark parallelism and the
-measured cost of each run.
+measured cost of each run. The repository carries only what the paper reports; see
+`docs/provenance.md`.
 
 ## Requirements
 
 * Python ≥ 3.11 and [uv](https://docs.astral.sh/uv/)
-* An OpenAI-compatible endpoint serving the policy LLM (the paper uses Qwen3.6-27B on vLLM)
+* An OpenAI-compatible endpoint serving the policy LLM (the paper uses Qwen3.6-27B under
+  vLLM on one H200; see Appendix E.1 of the paper)
 * A second endpoint for the LLM world-model arms
 * One GPU for the JEPA world model (it runs in-process, not served)
 * Docker for the CRMArena-Pro databases, the EnterpriseOps-Gym MCP tool servers, and

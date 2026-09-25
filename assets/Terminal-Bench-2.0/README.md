@@ -55,11 +55,9 @@ If you see `permission denied while trying to connect to the docker API at unix:
 On a local dev machine (outside the AI Lab cluster), set a writable storage root — `ejepa` defaults to `$BENCHMARK_HOME` when `BENCHMARK_HOME` is unset:
 
 ```bash
-export BENCHMARK_HOME="$PWD/.cache/benchmark home"
+export BENCHMARK_HOME="$PWD/.cache/benchmark-home"
 export TERMINAL_BENCH_WORKSPACE="$PWD/.cache/terminal-bench-workspace"
 ```
-
-Or use `scripts/run_terminal_bench_sample.sh`, which sets these automatically.
 
 2. **Task repo** — clone the upstream corpus locally:
 
@@ -180,13 +178,12 @@ Recommended local smoke (Azure GPT-5.5, trajectory capture, local storage paths)
 ```bash
 export AZURE_OPENAI_API_KEY="..."
 export AZURE_OPENAI_ENDPOINT="https://<resource>.openai.azure.com/"
-scripts/run_terminal_bench_sample.sh
 ```
 
 Or run `ejepa` directly (set `BENCHMARK_HOME` on local machines — see [Prerequisites](#prerequisites)):
 
 ```bash
-export BENCHMARK_HOME="$PWD/.cache/benchmark home"
+export BENCHMARK_HOME="$PWD/.cache/benchmark-home"
 export TERMINAL_BENCH_WORKSPACE="$PWD/.cache/terminal-bench-workspace"
 
 # Oracle smoke test (runs solve.sh locally, no LLM)
@@ -221,7 +218,7 @@ Add `target = "all"` to `green/tasks/task_ids.toml` or pass `--target all` once 
 | Symptom | Fix |
 |---------|-----|
 | `permission denied` on `/var/run/docker.sock` | Add your user to the `docker` group (`sudo usermod -aG docker $USER`), log out/in, then `scripts/check-docker-access.sh` |
-| `PermissionError on the default result root` | Set `BENCHMARK_HOME` to a writable local path (see Prerequisites) or use `scripts/run_terminal_bench_sample.sh` |
+| `PermissionError on the default result root` | Set `BENCHMARK_HOME` to a writable local path (see Prerequisites) |
 | `ModuleNotFoundError: harbor.environments.capabilities` | Re-run `scripts/install.sh terminal-bench-2.0` — green needs `harbor>=0.8.0` |
 | `task_repo_missing` / task not found | Clone upstream into `assets/Terminal-Bench-2.0/tasks/terminal-bench-2` |
 | Azure 404 on deployment | Set `AZURE_OPENAI_DEPLOYMENT_NAME` to your Azure **deployment name**, not the raw model id |
