@@ -13,16 +13,16 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 WORKDIR /app
 
 # Build context is the repo root (see docker-compose.yaml).
-COPY src/mas_wm/server/requirements.txt .
+COPY src/ejepa_wm/server/requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
 # The pluggable WM package: the EWM engine (_ewm_runtime/_ewm_finetuning), the
 # generator factory, and the server. stdlib-only at runtime for the vLLM backend.
-COPY src/mas_wm/ ./src/mas_wm/
+COPY src/ejepa_wm/ ./src/ejepa_wm/
 
 EXPOSE 12072
 
 # NOTE: the world-model (vLLM) server is reached over the network and is not part of
 # this image. For a local HuggingFace checkpoint backend, mount it and set
 # EWM_WORLD_MODEL_PATH (and add torch/transformers to requirements.txt).
-CMD ["python", "-m", "mas_wm.server.ewm_predict"]
+CMD ["python", "-m", "ejepa_wm.server.ewm_predict"]

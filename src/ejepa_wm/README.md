@@ -574,7 +574,7 @@ before this work (no equivalent of upstream's hardcoded-`max_tokens` bug existed
 `WM_LLM_EWM_MODE` or `--wm-llm-ewm-mode` (the older `--wm-ewm-backend` accepts the same values).
 
 - `llm_canonical_trained`: for an LLM trained on the reduced EWM target from
-  `~/program/ewm`: `execution_status`, `progress_signal`, `information_sufficiency`,
+  the training repo (`training/`): `execution_status`, `progress_signal`, `information_sufficiency`,
   `error_signature`, `side_effect_type`, and `terminal`. The generated category is treated as
   probability 1.0 and every other category as 0.0 for beam scoring and critic thresholds. Use
   `--wm-ewm-llm-canonical-event-checkpoint /path/to/checkpoint` for local HF loading, or serve

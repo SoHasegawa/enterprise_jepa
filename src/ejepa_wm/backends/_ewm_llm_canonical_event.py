@@ -29,7 +29,7 @@ from ejepa_wm.backends._ewm_finetuning import (
 
 logger = logging.getLogger(__name__)
 
-# Reduced LLM target schema from ~/program/ewm/src/finetuning.py:
+# Reduced LLM target schema from the EWM repo's `src/finetuning.py`:
 # five beam-scored fields plus a binary terminal flag.
 CANONICAL_EVENT_BEAM_TARGET_FIELDS: tuple[str, ...] = (
     "execution_status",

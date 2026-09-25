@@ -39,6 +39,41 @@ value was fixed.
 `scripts/run_wm_harnesses.py` runs the harnesses for one (benchmark, world model) pair and
 writes one summary covering all of them; the experiment scripts below wrap it.
 
+### Single runs
+
+One harness, one benchmark, straight from the CLI — useful for a smoke test before
+committing to a full cell:
+
+```bash
+# no-WM baseline
+ejepa bench run <BENCH> --executor mcp_react --config target=<target>
+
+# Revision, with Enterprise-JEPA
+ejepa bench run <BENCH> --executor mcp_react --config target=<target> \
+  --wm-strategy revision \
+  --wm-ewm-jepa-checkpoint checkpoints/jepa \
+  --wm-jepa-observation-backend canonical_event
+
+# ITP-I            : --wm-strategy itp_i --wm-itp-fixed-k 4
+# Beam search      : --wm-strategy beam_plan --wm-beam-plan-samples 8 \
+#                    --wm-beam-plan-horizon 3 --wm-beam-mpc-execute-steps 2
+
+# state-output LLM-WM instead of JEPA: replace the two --wm-ewm-jepa-* flags with
+#   --wm-llm-ewm-mode llm_canonical_trained \
+#   --wm-ewm-llm-canonical-event-checkpoint <llm-wm checkpoint>
+
+# every harness in one sweep, one summary
+uv run python scripts/run_wm_harnesses.py --result-root "$BENCHMARK_HOME/experiments" \
+  --label <run-label> -- ejepa bench run <BENCH> --executor mcp_react --config target=<target> ...
+```
+
+The ITP-I depth, beam horizon and re-plan interval above are the paper's
+(k = 4, horizon 3, execute 2 — §5.4). `src/ejepa_wm/README.md` illustrates the same flags
+with different values (`--wm-itp-max-k 5`, horizon 2, and the `WM_BEAM_MPC_EXECUTE_STEPS`
+default of 3); those are documentation examples, not the reported configuration.
+`scripts/run_main_table_repeats.sh` is the authority — it passes the paper's values
+explicitly.
+
 ## 1. Table 3 — task success rates
 
 One invocation per benchmark, so several can run concurrently against different agent

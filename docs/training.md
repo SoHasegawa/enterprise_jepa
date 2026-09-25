@@ -68,29 +68,63 @@ Output is one JSONL row per action carrying `system_prompt`, `task_prompt`, `act
 
 ## Stage 3 — JEPA latent dynamics
 
+> Reconstructed from the checkpoint's `jepa_data_manifest.json` and
+> `jepa_training_metrics.json`, not re-run. Every flag below is corroborated by the
+> manifest; the run itself was 8 GPUs × batch 8, 18,388 steps = exactly one epoch over
+> 1,176,788 examples, 188,891,136 trainable parameters, top 4 of 28 encoder layers
+> unfrozen.
+
+Expanded corpus — the paper's *JEPA, expanded* row of Table 2:
+
 ```bash
-uv run python src/finetuning_jepa.py \
-    --train-data-path trajectories/<train>.json \
-    --eval-data-path  trajectories/<eval>.json \
-    --output-dir checkpoints/jepa_pretrain \
-    --memory-tokens 8 --predictor-hidden-multiplier 4.0 \
-    --sigreg-coeff 0.05 --max-input-length 8192 --bf16
+cd training
+uv run torchrun --nproc_per_node=8 src/finetuning_jepa.py \
+  --model Qwen/Qwen3-Embedding-0.6B \
+  --trajectory-dataset enterprise_tool_calling_plus_swe_25k \
+  --predictor-arch transformer --predictor-transformer-layers 6 \
+  --predictor-transformer-heads 16 --predictor-history-length 8 \
+  --canonical-event-head-inputs state --event-target \
+  --unfreeze-top-backbone-layers 4 --backbone-learning-rate 5e-6 \
+  --sigreg-coeff 0.05 --latent-loss-coeff 1.0 --latent-loss-type smooth_l1_cosine \
+  --num-train-epochs 1 --per-device-train-batch-size 8 --bf16 \
+  --output-dir ../checkpoints/jepa_pretrain_expanded
 ```
+
+Small corpus — the *JEPA, small* row — is the same command with
+`--trajectory-dataset core`.
+
+**Read this before comparing to the paper.** `core` is EnterpriseOps-Gym + CRMArena-Pro
++ **Terminal-Bench**, 3,380 trajectories. The paper describes the small corpus as 4,515
+trajectories from the two in-distribution benchmarks only. The small arm therefore saw the
+out-of-domain benchmark during Stage 1, which weakens the out-of-domain claim for that row
+(the expanded arm, which the agentic results use, is unaffected).
 
 ## Stage 4 — canonical-event heads
 
-The heads are trained on top of a frozen JEPA checkpoint, which is what the paper's
-checkpoint is (`initialized_from_jepa_checkpoint` in its
-`canonical_event_data_manifest.json`):
+> Reconstructed from `canonical_event_data_manifest.json`, not re-run. 17,066 train /
+> 5,854 eval examples, 17,354,840 trainable parameters — the numbers in the shipped
+> checkpoint's `run_summary.json`.
+
+The heads are trained on top of a frozen Stage-1 checkpoint:
 
 ```bash
-uv run python src/finetuning_jepa.py \
-    --train-canonical-event-heads-only \
-    --canonical-event-train-jsonl trajectories/canonical_event_..._train_examples.jsonl \
-    --canonical-event-eval-jsonl  trajectories/canonical_event_..._eval_examples.jsonl \
-    --canonical-event-head-hidden-size 512 \
-    --output-dir checkpoints/jepa
+cd training
+uv run torchrun --nproc_per_node=2 src/finetuning_jepa.py \
+  --train-canonical-event-heads-only \
+  --jepa-checkpoint-path ../checkpoints/jepa_pretrain_expanded \
+  --canonical-event-train-jsonl trajectories/canonical_event_with_nudge_llm_enterpriseops_gym_crmarenapro_train_examples_cleaned_ensemble_value_scored.jsonl \
+  --canonical-event-eval-jsonl  trajectories/canonical_event_with_nudge_llm_enterpriseops_gym_crmarenapro_eval_examples_cleaned_ensemble_value_scored.jsonl \
+  --canonical-event-heads all --canonical-event-head-inputs state \
+  --canonical-event-head-hidden-size 512 \
+  --canonical-event-class-balance effective_num --canonical-event-cb-beta 0.9999 \
+  --terminal-loss-coeff 1.0 --num-train-epochs 5 --learning-rate 5e-4 \
+  --per-device-train-batch-size 24 --bf16 \
+  --canonical-event-dump-predictions ../checkpoints/jepa/eval_predictions_per_example.jsonl \
+  --output-dir ../checkpoints/jepa
 ```
+
+This writes `canonical_event_training_metrics.json`, which is the source of the three JEPA
+columns of Table 2 and of Figure 3.
 
 The result directory is what `--wm-ewm-jepa-checkpoint` consumes.
 
@@ -114,11 +148,67 @@ full net, including those heads and their checkpoint loaders, is the inference p
 `src/ejepa_wm/backends/_ewm_jepa.py`; reconstructing the missing training code means adding
 their losses to this script against that definition.
 
-## LLM world models
+## The state-output LLM world model
 
-The two LLM world-model baselines are fine-tuned with the same corpus in generative form:
-`src/data_preparation/convert_canonical_nudge_to_llama_factory.py` emits LlamaFactory alpaca
-datasets, and `src/analysis/evaluate_llama_factory_canonical_event.py` scores the result.
-The state-output world model used in the paper is `llm_wm_beam_action_terminal_crmarenapro`;
-at evaluation time it is served on an OpenAI-compatible endpoint rather than loaded
-in-process.
+> Verified: these two commands were run to produce the checkpoint the agentic results use.
+> Training took 2 h 46 m on 2 GPUs (3,201 steps); the eval pass ~2 h at ~45 rows/min.
+
+The baseline world model is a generative fine-tune on the same labelled corpus.
+
+```bash
+cd training
+CUDA_VISIBLE_DEVICES=0,1 uv run torchrun --nproc_per_node=2 src/finetuning.py \
+  --model ../checkpoints/llm_wm_base \
+  --world-model-target canonical_event_with_nudge \
+  --train-data-path trajectories/..._train_examples_cleaned_ensemble_value_scored.jsonl \
+  --eval-data-path  trajectories/..._eval_examples_cleaned_ensemble_value_scored.jsonl \
+  --state-history-size 3 \
+  --include-world-model-history \
+  --num-train-epochs 3 --learning-rate 2e-5 \
+  --per-device-train-batch-size 2 --gradient-accumulation-steps 4 \
+  --bf16 --gradient-checkpointing \
+  --output-dir ../checkpoints/llm_wm_state
+```
+
+Three things will silently give you the wrong result here:
+
+1. **`--include-world-model-history` is required.** Omitting it reproduces the original,
+   defective baseline — the world model then predicts without the action/observation
+   history the JEPA model gets, which is not the comparison the paper reports.
+2. **Evaluation must be a separate single-process pass.** Under `torchrun` the eval block
+   no-ops: you get `evaluation_metrics: null` and no metrics file, with no error. This is
+   why the original checkpoint's metrics live in a sibling `_eval/` directory.
+3. **`--world-model-eval-samples 0` means all rows.** The default of 2000 does not match
+   the reported n = 5,854.
+
+```bash
+cd training
+CUDA_VISIBLE_DEVICES=0 uv run python src/finetuning.py \
+  --skip-training \
+  --model            ../checkpoints/llm_wm_state \
+  --world-model-path ../checkpoints/llm_wm_state \
+  --world-model-target canonical_event_with_nudge \
+  --train-data-path <train.jsonl> --eval-data-path <eval.jsonl> \
+  --state-history-size 3 --include-world-model-history \
+  --world-model-eval-samples 0 \
+  --world-model-eval-dump-predictions ../checkpoints/llm_wm_state_eval/eval_predictions_per_example.jsonl \
+  --output-dir ../checkpoints/llm_wm_state_eval
+```
+
+At evaluation time this checkpoint is served on an OpenAI-compatible endpoint rather than
+loaded in-process; the agentic harnesses reach it with
+`--wm-llm-ewm-mode llm_canonical_trained`.
+
+Per-field accuracy for its Table 2 row comes from
+`training/src/analysis/calculate_canonical_field_accuracy.py`, run over the dumped
+predictions.
+
+## Table 2 and Figure 3
+
+The three JEPA columns of Table 2 come from each checkpoint's
+`canonical_event_training_metrics.json`, and the LLM-WM column from the eval dump above.
+The scripts that assembled the table and drew the per-category recall/F1 panels of Figure 3
+were written ad hoc outside either repository (`/tmp/plot_percat.py`,
+`/tmp/table1_refresh.py`) and no longer exist, so the plotting step is the one part of the
+pipeline this repository cannot reproduce as-is. The inputs it needs are all present in the
+checkpoint metric files.

@@ -88,6 +88,36 @@ carry the old prefixes and will not match the summarizers' globs until renamed.
    diffing it against the research repo should stay easy), so style-only rule families are
    silenced for it in `pyproject.toml`. Correctness rules are not.
 
+## Where the code and the paper disagree
+
+Found while reconciling the recorded runs with the submission. None of these are changed in
+the code — they are recorded so a reader who compares the two is not misled.
+
+1. **Predictor depth.** Appendix E.1 says the predictor "comprises eight Transformer
+   blocks". The shipped checkpoint's `jepa_data_manifest.json` records
+   `predictor_transformer_layers: 6` (with `predictor_transformer_heads: 16` and
+   `predictor_history_length: 8`, both as described), and the Stage-1 command passes
+   `--predictor-transformer-layers 6`. Eight is the number of history tokens, not blocks.
+2. **Small-corpus composition.** §5.2 describes the small corpus as 4,515 trajectories
+   from EnterpriseOps-Gym and CRMArena-Pro. The `core` dataset the *JEPA, small* run
+   actually used is EnterpriseOps-Gym + CRMArena-Pro + Terminal-Bench, 3,380 trajectories,
+   so that row's Stage 1 saw the out-of-domain benchmark. The expanded corpus, which the
+   agentic results use, is unaffected.
+3. **Encoder learning rate.** Appendix E.1 gives 1e-6 for the text encoder; the Stage-1
+   command passes `--backbone-learning-rate 5e-6`.
+4. **AutomationBench size.** §5.2 says 392 tasks (and the 1,679 total is computed with
+   392); Appendix A says all 600 are run and 400 reported after excluding marketing and
+   finance. The data and `scripts/summarize_main_table.py` agree with the appendix — the
+   summarizer requires exactly 400 scored tasks and drops a cell otherwise.
+
+## Not reproducible from this repository
+
+The scripts that assembled Table 2 and drew Figure 3 were written ad hoc outside either
+repository (`/tmp/plot_percat.py`, `/tmp/table1_refresh.py`) and no longer exist. Their
+inputs — each checkpoint's `canonical_event_training_metrics.json` and the LLM-WM
+evaluation dump — are produced by the documented training commands, so the numbers are
+recoverable; only the table/figure assembly would have to be rewritten.
+
 ## Code that is a port, not a copy
 
 `src/ejepa_wm/backends/_ewm_jepa.py`, `_ewm_finetuning.py`, `_ewm_runtime.py`,
