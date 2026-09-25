@@ -44,15 +44,15 @@ environment variables.
 
 ## 3. Checkpoints
 
-Two checkpoints are training outputs and are not in the repository:
+Both trained world models are published as release assets rather than committed; see
+`model/README.md` for their contents and checksums.
 
-* **Enterprise-JEPA** — the paper uses `data_jepa_heads_partial_imb_terminal_3`: a JEPA net
-  with canonical-event classification heads over a text backbone. Place or symlink it at
-  `checkpoints/jepa`. The run scripts read `JEPA_CKPT` / `JEPA_CHECKPOINT`, defaulting to
-  that path. Training it is `docs/training.md`.
-* **State-output LLM world model** — `llm_wm_beam_action_terminal_crmarenapro`, served on an
+* **Enterprise-JEPA** — a JEPA net with canonical-event classification heads over a text
+  backbone. Unpack it at `checkpoints/jepa`; the run scripts read `JEPA_CKPT` /
+  `JEPA_CHECKPOINT`, defaulting to that path.
+* **State-output LLM world model** — a Qwen3 0.6B fine-tune, served on an
   OpenAI-compatible endpoint (the protocol uses `:9015`) and selected with
-  `--wm-llm-ewm-mode llm_canonical_trained --wm-ewm-model world_model`. Expected at
+  `--wm-llm-ewm-mode llm_canonical_trained --wm-ewm-model world_model`. Unpack it at
   `checkpoints/llm_wm_state` when a script needs it on disk (e.g. the latency sweep).
 
 A JEPA checkpoint directory must contain `text_leworldmodel.pt`, `jepa_data_manifest.json`,

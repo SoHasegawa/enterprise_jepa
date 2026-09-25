@@ -89,21 +89,27 @@ fetch_crm_db() {
 
 show_checkpoints() {
   cat <<EOF
-[fetch] Checkpoints are training outputs and are not downloadable from this repo.
+[fetch] The two trained world models are published as release assets; see model/README.md
+[fetch] for their contents and checksums.
 
-1. Enterprise-JEPA world model (the paper's checkpoint:
-   'data_jepa_heads_partial_imb_terminal_3'). Place or symlink it at:
+1. Enterprise-JEPA. Unpack the 'enterprise_jepa' asset to:
 
      $JEPA_CKPT
 
    It must contain text_leworldmodel.pt, jepa_data_manifest.json,
    canonical_event_vocab.json, the tokenizer files and backbone/. Pass it with
    --wm-ewm-jepa-checkpoint, or set JEPA_CKPT for the run scripts.
-   To train one yourself, see docs/training.md.
 
-2. EnterpriseOps LoRA world model (optional; only the 'ewm_predict' /
-   wm_imagined_run.sh paths use it). Place adapter_model.safetensors and
-   tokenizer.json next to the adapter_config.json already in:
+2. State-output LLM world model. Unpack the 'llm_wm_state_output' asset anywhere and
+   serve it on an OpenAI-compatible endpoint:
+
+     vllm serve <dir> --served-model-name world_model --port 9015
+
+   then export WM_VLLM_BASE_URL / WM_VLLM_API_KEY for the run scripts.
+
+3. EnterpriseOps LoRA world model (optional; only the 'ewm_predict' /
+   wm_imagined_run.sh paths use it, which the paper does not). Place
+   adapter_model.safetensors and tokenizer.json next to the adapter_config.json in:
 
      $REPO_ROOT/assets/EnterpriseOps-Gym/models/gymops_world_model
 EOF

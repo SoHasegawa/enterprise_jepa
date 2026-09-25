@@ -34,3 +34,7 @@ training/data/*.jsonl
 training/sessions/
 upstreams/
 checkpoints/
+
+# Release models are staged in model/ and uploaded as release assets, never committed.
+model/*
+!model/README.md
