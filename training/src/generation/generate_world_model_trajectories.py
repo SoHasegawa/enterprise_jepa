@@ -41,7 +41,6 @@ STAGE_SCHEMA = {
     "current_stage": "",
 }
 TOOL_EXECUTION_RESULT_LABELS = (-1, 0, 1)
-DEFAULT_ACTIVE_STAGE = "Complete the active step"
 
 
 def parse_args():
@@ -214,7 +213,7 @@ def flush_stage_cache(stage_cache, cache_path: Path, tracker, force=False):
 
 
 def empty_tool_execution_result_counts():
-    return dict.fromkeys(TOOL_EXECUTION_RESULT_LABELS, 0)
+    return {label: 0 for label in TOOL_EXECUTION_RESULT_LABELS}
 
 
 def serialize_tool_execution_result_counts(counts):
@@ -579,7 +578,7 @@ def build_split(grouped_split_stats, args):
                 target_train_record_count=target_train_record_count,
                 target_train_label_counts=target_train_label_counts,
             )
-            candidate_score = candidate[-1]
+            candidate_train_groups, candidate_test_groups, candidate_train_label_counts, candidate_train_record_count, candidate_score = candidate
             if best_score is None or candidate_score < best_score:
                 best_assignment = candidate
                 best_score = candidate_score
@@ -850,11 +849,11 @@ def prompt_stage_model(
             last_action = recent_action_summaries[-1] if recent_action_summaries else summarize_text(user_prompt, limit=80)
             stage = {
                 "remaining_stages": [
-                    DEFAULT_ACTIVE_STAGE,
+                    "Complete the active step",
                     "Verify the result",
                     "Deliver the final response",
                 ],
-                "current_stage": summarize_text(last_action, limit=80) or DEFAULT_ACTIVE_STAGE,
+                "current_stage": summarize_text(last_action, limit=80) or "Complete the active step",
             }
             if stage["current_stage"] not in stage["remaining_stages"]:
                 stage["remaining_stages"][0] = stage["current_stage"]
@@ -903,7 +902,7 @@ def prompt_stage_model(
         remaining_stages = previous_remaining_stages[previous_remaining_stages.index(current_stage) :]
     else:
         if not remaining_stages:
-            remaining_stages = [current_stage or DEFAULT_ACTIVE_STAGE]
+            remaining_stages = [current_stage or "Complete the active step"]
         if not current_stage or current_stage not in remaining_stages:
             current_stage = remaining_stages[0]
 

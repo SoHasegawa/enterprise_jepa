@@ -7,7 +7,7 @@ disputing a number.
 
 | Paper | What it is | Run | Summarize |
 |---|---|---|---|
-| Table 2, Figure 3 | Next-state prediction (macro-F1 / macro-recall per field) | Stage-2 training eval — `docs/training.md` | the trainer's `run_summary.json`; `training/src/analysis/calculate_canonical_field_accuracy.py` for the LLM-WM row |
+| Table 2, Figure 3 | Next-state prediction (macro-F1 / macro-recall per field) | Stage-2 training eval — `docs/training.md` | `training/src/analysis/canonical_event_prediction_report.py` (JEPA) and `llm_world_model_field_eval.py` (LLM-WM) |
 | Table 3 | Task success rates, 5 benchmarks × 3 harnesses × 2 world models + baseline | `scripts/run_main_table_repeats.sh` | `scripts/summarize_main_table.py`, `scripts/summarize_row_averages.py` (the *Ave.* column) |
 | Table 4 | Prediction controls on EnterpriseOps-Gym | `scripts/run_prediction_controls.sh` | `scripts/summarize_wm_harness_summaries.py` |
 | Table 5 | Enterprise-JEPA vs the tool-output LLM-WM (Qwen-AgentWorld) | `WORLD_MODELS=agentworld scripts/run_main_table_repeats.sh` | `scripts/summarize_main_table.py` |

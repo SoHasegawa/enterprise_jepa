@@ -68,7 +68,6 @@ DEFAULT_SPLIT_MANIFEST_PATH = (
     ROOT / "trajectories" / "enterpriseops_gym_multi_model_world_model_trajectory_split_manifest.json"
 )
 DEFAULT_STAGE_CACHE = ROOT / "trajectories" / "enterpriseops_gym_world_model_stage_cache.json"
-JSONL_SUFFIX = ".jsonl"
 
 
 SOURCE_MODEL_SPECS = {
@@ -565,14 +564,14 @@ def collect_source_set(
             break
 
         if (
-            source_file.suffix != JSONL_SUFFIX
+            source_file.suffix != ".jsonl"
             and domain_filter
             and domain_from_source_path(source_file) not in domain_filter
         ):
             continue
 
         try:
-            if source_file.suffix == JSONL_SUFFIX:
+            if source_file.suffix == ".jsonl":
                 trajectory = reconstruct_jsonl_trajectory(
                     source_file=source_file,
                     source_spec=source_spec,
@@ -634,7 +633,7 @@ def main() -> None:
     source_sets = [
         (
             "gpt-5.5-jsonl",
-            source_files_under(args.jsonl_source_dir, JSONL_SUFFIX),
+            source_files_under(args.jsonl_source_dir, ".jsonl"),
             SOURCE_MODEL_SPECS["gpt-5.5"],
         ),
         (

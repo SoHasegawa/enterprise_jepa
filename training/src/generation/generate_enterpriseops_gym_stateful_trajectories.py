@@ -101,53 +101,6 @@ def build_trajectory_id(seed: dict) -> str:
     return f"enterpriseops-gym-stateful-{Path(source_path).stem}"
 
 
-def try_reconstruct_source_file(source_file: Path, seed: dict) -> tuple[dict | None, dict | None]:
-    try:
-        trajectory = reconstruct_seed_trajectory(
-            seed,
-            trajectory_id=build_trajectory_id(seed),
-            selection_basis="matched_imported_seed_by_source_path",
-        )
-    except (IndexError, KeyError, TypeError, ValueError) as exc:
-        return None, {
-            "source_path": str(source_file),
-            "seed_id": seed.get("seed_id"),
-            "reason": str(exc),
-        }
-    return trajectory, None
-
-
-def write_trajectories(path: Path, records: list[dict], output_format: str) -> None:
-    if output_format == "jsonl":
-        dump_jsonl(path, records)
-    else:
-        dump_json(path, records)
-
-
-def report_summary(
-    *,
-    output_path: Path,
-    trajectories: list[dict],
-    matched_paths: list[str],
-    missing_paths: list[str],
-    skipped_records: list[dict],
-) -> None:
-    domain_counts = Counter(item["domain"] for item in trajectories)
-
-    print(f"Wrote {len(trajectories)} trajectories to {output_path}")
-    print(f"Matched run files: {len(matched_paths)}")
-    print(f"Unmatched run files: {len(missing_paths)}")
-    print(f"Skipped non-reconstructable runs: {len(skipped_records)}")
-    if domain_counts:
-        print("Domain counts:")
-        for domain, count in sorted(domain_counts.items()):
-            print(f"  {domain}: {count}")
-    if skipped_records:
-        print("Sample skipped runs:")
-        for item in skipped_records[:5]:
-            print(f"  {item['source_path']}: {item['reason']}")
-
-
 def main():
     args = parse_args()
     domain_filter = parse_domain_filter(args.domains)
@@ -166,9 +119,20 @@ def main():
             missing_paths.append(str(source_file))
             continue
 
-        trajectory, skipped = try_reconstruct_source_file(source_file, seed)
-        if skipped is not None:
-            skipped_records.append(skipped)
+        try:
+            trajectory = reconstruct_seed_trajectory(
+                seed,
+                trajectory_id=build_trajectory_id(seed),
+                selection_basis="matched_imported_seed_by_source_path",
+            )
+        except (IndexError, KeyError, TypeError, ValueError) as exc:
+            skipped_records.append(
+                {
+                    "source_path": str(source_file),
+                    "seed_id": seed.get("seed_id"),
+                    "reason": str(exc),
+                }
+            )
             continue
 
         trajectories.append(trajectory)
@@ -192,14 +156,25 @@ def main():
             f"using seeds from {args.seeds_path}."
         )
 
-    write_trajectories(args.output_path, trajectories, args.output_format)
-    report_summary(
-        output_path=args.output_path,
-        trajectories=trajectories,
-        matched_paths=matched_paths,
-        missing_paths=missing_paths,
-        skipped_records=skipped_records,
-    )
+    if args.output_format == "jsonl":
+        dump_jsonl(args.output_path, trajectories)
+    else:
+        dump_json(args.output_path, trajectories)
+
+    domain_counts = Counter(item["domain"] for item in trajectories)
+
+    print(f"Wrote {len(trajectories)} trajectories to {args.output_path}")
+    print(f"Matched run files: {len(matched_paths)}")
+    print(f"Unmatched run files: {len(missing_paths)}")
+    print(f"Skipped non-reconstructable runs: {len(skipped_records)}")
+    if domain_counts:
+        print("Domain counts:")
+        for domain, count in sorted(domain_counts.items()):
+            print(f"  {domain}: {count}")
+    if skipped_records:
+        print("Sample skipped runs:")
+        for item in skipped_records[:5]:
+            print(f"  {item['source_path']}: {item['reason']}")
 
 
 if __name__ == "__main__":

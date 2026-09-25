@@ -31,10 +31,11 @@ Agent trajectories are harvested per benchmark and converted into world-model tr
 examples:
 
 ```bash
+cd training
 uv run python src/generation/generate_enterpriseops_gym_multi_model_world_model_trajectories.py
-uv run python src/data_preparation/split_crmarenapro_trajectories.py
-uv run python src/data_preparation/split_terminalbench_trajectories.py
-uv run python src/data_preparation/materialize_aligned_world_model_trajectories.py
+uv run python src/data_preparation/convert_crmarenapro_jsonl_to_crmarena_results.py
+uv run python src/data_preparation/convert_terminalbench_jsonl_to_trajectories.py
+uv run python src/data_preparation/world_model_trajectory_cleanup.py
 ```
 
 These read benchmark run output (`BENCHMARK_RESULT_ROOT`) and write into
@@ -42,29 +43,37 @@ These read benchmark run output (`BENCHMARK_RESULT_ROOT`) and write into
 MB. Task-level train/eval disjointness is enforced by the split manifests, not by a random
 row split, so the same task never appears on both sides.
 
-That yields the paper's **small corpus** (4,515 trajectories from the two in-distribution
-benchmarks). The **expanded corpus** (316,200 trajectories) adds filtered tool-use and
-software-engineering trajectories from the Agent Data Protocol release; convert them with
+The **expanded corpus** adds filtered tool-use and software-engineering trajectories from
+the Agent Data Protocol release (paper Table 6 lists the sources and their counts):
 
 ```bash
-uv run python src/generation/generate_adp_world_model_trajectories.py
+uv run python src/generation/generate_adp_world_model_trajectories.py   # one file per ADP subset
 ```
 
-one output file per ADP subset. Paper Table 6 lists the sources and their counts.
+`--trajectory-dataset` then selects the corpus. The presets that matter here are
+`enterprise_tool_calling_plus_swe_25k` (expanded), `core` (EnterpriseOps-Gym +
+CRMArena-Pro + Terminal-Bench) and `core_no_terminalbench` (the two in-distribution
+benchmarks only); `src/finetuning_jepa.py` lists the rest.
 
 ## Stage 2 — canonical-event labels
 
-Each action gets a canonical event label, assigned by an LLM labeller and then cleaned:
+Each action gets a canonical event label. The file the Stage-2 command consumes is named
+for the chain that produces it — `..._cleaned_ensemble_value_scored.jsonl`:
 
 ```bash
-uv run python src/data_preparation/label_canonical_events_with_llm.py
-uv run python src/data_preparation/generate_canonical_event_state_examples.py
-uv run python src/data_preparation/world_model_trajectory_cleanup.py
+cd training
+# 1. clean the materialized LLM-labelled examples
+uv run python src/data_preparation/clean_canonical_event_examples.py
+# 2. re-annotate with a multi-model ensemble, then take majority vote
+uv run python src/data_preparation/ensemble_relabel_canonical_events.py
+uv run python src/data_preparation/apply_ensemble_consensus_labels.py
+# 3. add the per-step value-head targets
+uv run python src/data_preparation/annotate_step_value_scores.py
 ```
 
-Output is one JSONL row per action carrying `system_prompt`, `task_prompt`, `action`,
-`input_history`, `canonical_event_state` and `nudge`. Label accuracy can be audited with
-`src/analysis/calculate_canonical_field_accuracy.py`.
+Each row carries `system_prompt`, `task_prompt`, `action`, `input_history`,
+`canonical_event_state` and `nudge`. The ensemble step is what paper Appendix C reports
+inter-rater agreement over (Table 7).
 
 ## Stage 3 — JEPA latent dynamics
 
@@ -97,9 +106,10 @@ Small corpus — the *JEPA, small* row — is the same command with
 
 **Read this before comparing to the paper.** `core` is EnterpriseOps-Gym + CRMArena-Pro
 + **Terminal-Bench**, 3,380 trajectories. The paper describes the small corpus as 4,515
-trajectories from the two in-distribution benchmarks only. The small arm therefore saw the
-out-of-domain benchmark during Stage 1, which weakens the out-of-domain claim for that row
-(the expanded arm, which the agentic results use, is unaffected).
+trajectories from the two in-distribution benchmarks only, which is the
+`core_no_terminalbench` preset, not `core`. As run, the small arm saw the out-of-domain
+benchmark during Stage 1, which weakens the out-of-domain claim for that row; the expanded
+arm, which the agentic results use, is unaffected.
 
 ## Stage 4 — canonical-event heads
 
@@ -141,16 +151,8 @@ evaluated on 5,854, over EnterpriseOps-Gym + CRMArena-Pro trajectories. Its
 `risk_signal`, 0.771 `terminal`, down to 0.246 `missing_information_type`. Those numbers
 are the ceiling on how much signal the planner has to work with.
 
-**Known gap.** The vendored `finetuning_jepa.py` is the last committed snapshot of the
-training script (EWM branch `jepa`, 2026-07-17). The paper's checkpoint was produced by a
-later, uncommitted revision: its manifest records heads that this snapshot does not build
-(`terminal_head`, `value_head`, `obs_grounding`, `fast_lewm`, `action_decoder`). Training
-from this snapshot therefore reproduces the architecture and objective but not that
-checkpoint bit for bit, and a checkpoint trained here will have no terminal head (so
-`--wm-beam-plan-terminal-advice` has nothing to read). The authoritative definition of the
-full net, including those heads and their checkpoint loaders, is the inference port
-`src/ejepa_wm/backends/_ewm_jepa.py`; reconstructing the missing training code means adding
-their losses to this script against that definition.
+`training/` vendors the EWM `jepa` branch, the tree these commands were run from, so every
+flag above resolves.
 
 ## The state-output LLM world model
 
@@ -204,15 +206,23 @@ loaded in-process; the agentic harnesses reach it with
 `--wm-llm-ewm-mode llm_canonical_trained`.
 
 Per-field accuracy for its Table 2 row comes from
-`training/src/analysis/calculate_canonical_field_accuracy.py`, run over the dumped
-predictions.
+`training/src/analysis/llm_world_model_field_eval.py`, run over the dumped predictions.
 
 ## Table 2 and Figure 3
 
-The three JEPA columns of Table 2 come from each checkpoint's
-`canonical_event_training_metrics.json`, and the LLM-WM column from the eval dump above.
-The scripts that assembled the table and drew the per-category recall/F1 panels of Figure 3
-were written ad hoc outside either repository (`/tmp/plot_percat.py`,
-`/tmp/table1_refresh.py`) and no longer exist, so the plotting step is the one part of the
-pipeline this repository cannot reproduce as-is. The inputs it needs are all present in the
-checkpoint metric files.
+Macro-F1, macro-recall and the per-category recall behind Figure 3 are computed from the
+per-example prediction dumps that Stage 2 and the LLM-WM eval write:
+
+```bash
+cd training
+uv run python src/analysis/canonical_event_prediction_report.py   # JEPA columns
+uv run python src/analysis/llm_world_model_field_eval.py          # LLM-WM column
+```
+
+The training metrics files (`canonical_event_training_metrics.json`, `run_summary.json`)
+carry only marginal class distributions, which is why per-class P/R/F1 needs the dumps.
+The final matplotlib panels were drawn by an ad-hoc script outside either repository and
+are not included; the numbers they plot come from these two commands.
+
+The Stage-1 ablation behind the *JEPA, no Stage 1* row is
+`src/analysis/jepa_readout_ablation.py`.

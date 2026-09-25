@@ -34,11 +34,12 @@ DEFAULT_PATTERNS = (
     "*_train_trajectories.json",
     "*_test_trajectories.json",
 )
-UUID_PATTERN = r"[\da-fA-F]{8}(?:-[\da-fA-F]{4}){3}-[\da-fA-F]{12}"
-UUID_RE = re.compile(rf"^{UUID_PATTERN}$")
-INTEGER_RE = re.compile(r"^-?(0|[1-9]\d*)$")
+UUID_RE = re.compile(
+    r"^[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12}$"
+)
+INTEGER_RE = re.compile(r"^-?(0|[1-9][0-9]*)$")
 KEY_VALUE_ID_RE = re.compile(
-    rf"(?P<key>\b[A-Za-z_]\w*\b)\s*=\s*(?P<value>\d+|{UUID_PATTERN})"
+    r"(?P<key>\b[A-Za-z_][A-Za-z0-9_]*\b)\s*=\s*(?P<value>[0-9]+|[0-9a-fA-F]{8}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{4}-[0-9a-fA-F]{12})"
 )
 FAMILY_ALIASES = {
     "portal_user": "user",
@@ -100,6 +101,44 @@ class IdentifierStandardizer:
         while index < len(text):
             char = text[index]
 
+            if char.isspace():
+                index += 1
+                continue
+
+            if char == "{":
+                stack.append(Frame(kind="object", container_key=expecting_value_for_key, expecting_key=True))
+                expecting_value_for_key = None
+                index += 1
+                continue
+
+            if char == "[":
+                stack.append(Frame(kind="array", container_key=expecting_value_for_key))
+                expecting_value_for_key = None
+                index += 1
+                continue
+
+            if char == "}" or char == "]":
+                if stack:
+                    stack.pop()
+                expecting_value_for_key = None
+                index += 1
+                continue
+
+            if char == ",":
+                if stack and stack[-1].kind == "object":
+                    stack[-1].expecting_key = True
+                    stack[-1].pending_key = None
+                expecting_value_for_key = None
+                index += 1
+                continue
+
+            if char == ":":
+                if stack and stack[-1].kind == "object":
+                    expecting_value_for_key = stack[-1].pending_key
+                    stack[-1].expecting_key = False
+                index += 1
+                continue
+
             if char == '"':
                 token_end, decoded = self._parse_string(text, index)
                 if stack and stack[-1].kind == "object" and stack[-1].expecting_key:
@@ -115,13 +154,12 @@ class IdentifierStandardizer:
                 continue
 
             if char == "-" or char.isdigit():
-                token_end = self._collect_number_replacement(
-                    text,
-                    index,
-                    stack,
-                    expecting_value_for_key,
-                    replacements,
-                )
+                token_end = self._parse_number(text, index)
+                token = text[index:token_end]
+                path = self._current_path(stack, expecting_value_for_key)
+                replacement_text = self._replacement_for_scalar(path, token, is_string=False)
+                if replacement_text is not None:
+                    replacements.append(Replacement(index, token_end, replacement_text))
                 expecting_value_for_key = None
                 index = token_end
                 continue
@@ -132,61 +170,9 @@ class IdentifierStandardizer:
                 index = token_end
                 continue
 
-            index, expecting_value_for_key = self._advance_json_structure(
-                char,
-                index,
-                stack,
-                expecting_value_for_key,
-            )
+            index += 1
 
         return replacements
-
-    def _advance_json_structure(
-        self,
-        char: str,
-        index: int,
-        stack: list[Frame],
-        expecting_value_for_key: str | None,
-    ) -> tuple[int, str | None]:
-        if char.isspace():
-            return index + 1, expecting_value_for_key
-        if char == "{":
-            stack.append(Frame(kind="object", container_key=expecting_value_for_key, expecting_key=True))
-            return index + 1, None
-        if char == "[":
-            stack.append(Frame(kind="array", container_key=expecting_value_for_key))
-            return index + 1, None
-        if char == "}" or char == "]":
-            if stack:
-                stack.pop()
-            return index + 1, None
-        if char == ",":
-            if stack and stack[-1].kind == "object":
-                stack[-1].expecting_key = True
-                stack[-1].pending_key = None
-            return index + 1, None
-        if char == ":":
-            if stack and stack[-1].kind == "object":
-                stack[-1].expecting_key = False
-                return index + 1, stack[-1].pending_key
-            return index + 1, expecting_value_for_key
-        return index + 1, expecting_value_for_key
-
-    def _collect_number_replacement(
-        self,
-        text: str,
-        index: int,
-        stack: list[Frame],
-        expecting_value_for_key: str | None,
-        replacements: list[Replacement],
-    ) -> int:
-        token_end = self._parse_number(text, index)
-        token = text[index:token_end]
-        path = self._current_path(stack, expecting_value_for_key)
-        replacement_text = self._replacement_for_scalar(path, token, is_string=False)
-        if replacement_text is not None:
-            replacements.append(Replacement(index, token_end, replacement_text))
-        return token_end
 
     def _collect_key_value_replacements(self, text: str) -> list[Replacement]:
         replacements: list[Replacement] = []
@@ -223,6 +209,7 @@ class IdentifierStandardizer:
         if not path:
             return value, 0
 
+        key = path[-1]
         family = self._family_for_path(path)
 
         if isinstance(value, int) and not isinstance(value, bool):
@@ -377,58 +364,46 @@ def standardize_trajectory(trajectory: dict[str, Any]) -> tuple[dict[str, Any], 
 
     for message in updated.get("messages") or []:
         content = message.get("content")
-        replacements = _standardize_action_message(message, content, standardizer)
-        replacements += _standardize_state_message(content, standardizer)
-        if replacements:
-            message_updates += 1
-            replacement_count += replacements
+        if (
+            message.get("role") == "action"
+            and isinstance(content, dict)
+            and isinstance(content.get("tool_calls"), list)
+        ):
+            action_updates = 0
+            for tool_call in content["tool_calls"]:
+                if not isinstance(tool_call, dict):
+                    continue
+                function_payload = tool_call.get("function")
+                if not isinstance(function_payload, dict):
+                    continue
+                arguments = function_payload.get("arguments")
+                updated_arguments, replacements = standardizer.standardize_tool_arguments(arguments)
+                function_payload["arguments"] = updated_arguments
+                action_updates += replacements
+            if action_updates:
+                message_updates += 1
+                replacement_count += action_updates
+
+        if not isinstance(content, dict):
+            continue
+        state = content.get("state")
+        if not isinstance(state, dict):
+            continue
+        context = state.get("context")
+        if not isinstance(context, dict):
+            continue
+        last_tool_output = context.get("last_tool_output")
+        if not isinstance(last_tool_output, str) or not last_tool_output:
+            continue
+
+        standardized_output, replacements = standardizer.standardize_output(last_tool_output)
+        if replacements == 0:
+            continue
+        context["last_tool_output"] = standardized_output
+        message_updates += 1
+        replacement_count += replacements
 
     return updated, message_updates, replacement_count
-
-
-def _standardize_action_message(
-    message: dict[str, Any],
-    content: Any,
-    standardizer: IdentifierStandardizer,
-) -> int:
-    if message.get("role") != "action" or not isinstance(content, dict):
-        return 0
-    tool_calls = content.get("tool_calls")
-    if not isinstance(tool_calls, list):
-        return 0
-
-    replacements = 0
-    for tool_call in tool_calls:
-        if not isinstance(tool_call, dict):
-            continue
-        function_payload = tool_call.get("function")
-        if not isinstance(function_payload, dict):
-            continue
-        updated_arguments, count = standardizer.standardize_tool_arguments(
-            function_payload.get("arguments")
-        )
-        function_payload["arguments"] = updated_arguments
-        replacements += count
-    return replacements
-
-
-def _standardize_state_message(content: Any, standardizer: IdentifierStandardizer) -> int:
-    if not isinstance(content, dict):
-        return 0
-    state = content.get("state")
-    if not isinstance(state, dict):
-        return 0
-    context = state.get("context")
-    if not isinstance(context, dict):
-        return 0
-    last_tool_output = context.get("last_tool_output")
-    if not isinstance(last_tool_output, str) or not last_tool_output:
-        return 0
-
-    standardized_output, replacements = standardizer.standardize_output(last_tool_output)
-    if replacements:
-        context["last_tool_output"] = standardized_output
-    return replacements
 
 
 def process_file(input_path: Path, output_path: Path) -> dict[str, Any]:

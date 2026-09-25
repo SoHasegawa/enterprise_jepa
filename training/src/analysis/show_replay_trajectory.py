@@ -395,41 +395,6 @@ def list_indices(agent_replay_eval: dict[str, Any], modes: list[str]) -> None:
             )
 
 
-def available_trajectory_indices(records: list[dict[str, Any]]) -> list[int]:
-    return sorted(
-        item.get("trajectory_index")
-        for item in records
-        if item.get("trajectory_index") is not None
-    )
-
-
-def select_run_for_mode(
-    agent_replay_eval: dict[str, Any],
-    *,
-    mode: str,
-    trajectory_index: int,
-    run_index: int,
-) -> tuple[dict[str, Any], dict[str, Any] | None]:
-    records = get_mode_records(agent_replay_eval, mode)
-    record = record_by_trajectory_index(records, trajectory_index)
-    if record is None:
-        available = available_trajectory_indices(records)
-        raise SystemExit(
-            f"No `{mode}` record for trajectory_index={trajectory_index}. "
-            f"Available range: {available[:5]} ... {available[-5:]}"
-        )
-
-    runs = (record.get("result") or {}).get("runs") or []
-    if not runs:
-        return record, None
-    if run_index < 0 or run_index >= len(runs):
-        raise SystemExit(
-            f"Invalid --run-index {run_index} for `{mode}`; "
-            f"available runs: 0..{len(runs) - 1}"
-        )
-    return record, runs[run_index]
-
-
 def main() -> None:
     args = parse_args()
     payload = load_payload(args.replay_path)
@@ -444,18 +409,33 @@ def main() -> None:
         raise SystemExit("Pass --trajectory-index or use --list-indices.")
 
     for mode in modes:
-        record, run = select_run_for_mode(
-            agent_replay_eval,
-            mode=mode,
-            trajectory_index=args.trajectory_index,
-            run_index=args.run_index,
-        )
+        records = get_mode_records(agent_replay_eval, mode)
+        record = record_by_trajectory_index(records, args.trajectory_index)
+        if record is None:
+            available = sorted(
+                item.get("trajectory_index")
+                for item in records
+                if item.get("trajectory_index") is not None
+            )
+            raise SystemExit(
+                f"No `{mode}` record for trajectory_index={args.trajectory_index}. "
+                f"Available range: {available[:5]} ... {available[-5:]}"
+            )
+
         print_header(f"{mode} trajectory")
         print_stats(record)
 
-        if run is None:
+        runs = (record.get("result") or {}).get("runs") or []
+        if not runs:
             print("No runs found.")
             continue
+        if args.run_index < 0 or args.run_index >= len(runs):
+            raise SystemExit(
+                f"Invalid --run-index {args.run_index} for `{mode}`; "
+                f"available runs: 0..{len(runs) - 1}"
+            )
+
+        run = runs[args.run_index]
         print_run(
             run,
             include_system=args.include_system,

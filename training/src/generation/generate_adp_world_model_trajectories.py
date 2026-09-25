@@ -1,5 +1,3 @@
-# Provenance: vendored from the EWM repo, branch `jepa` (commit 7b62196). Produces the
-# expanded Stage-1 corpus of the paper (Appendix B, Table 6: Agent Data Protocol sources).
 """Convert Agent Data Protocol (ADP) standardized trajectories into the lean
 world-model trajectory format consumed by ``src/finetuning.py``, with a
 minimal ``state`` message (``context.last_tool_output`` only) recording each
@@ -69,8 +67,14 @@ DEFAULT_SNAPSHOT_PATH = Path(
 )
 DEFAULT_OUTPUT_DIR = ROOT / "trajectories"
 
-# toucan_1_5m already has trajectories/toucan_world_model_trajectories.json
-# (generated from the raw Toucan source), so it is skipped by default.
+# toucan_1_5m is skipped in no-argument runs only because of its size (26.5GB input,
+# 1.52M records -> ~20GB output): regenerating it as a side effect of "regenerate the
+# small ADP subsets" would be an expensive surprise. Generate it EXPLICITLY with
+#   --dataset toucan_1_5m
+# (an explicit --dataset always overrides this skip). This is the uncurated TOUCAN used
+# by the `all`/`adp_all`/`toucan_1_5m` presets in finetuning_jepa.py; the legacy
+# trajectories/toucan_world_model_* files are the enterprise-curated variant
+# (stratified by enterprise_label_confidence; `toucan` preset).
 DEFAULT_SKIP = {"toucan_1_5m"}
 
 BASH_LANGUAGES = {"bash", "sh", "shell", "zsh"}
@@ -157,10 +161,21 @@ def resolve_snapshot_path(repo_id: str, explicit: Path | None) -> Path:
     )
 
 
+def subset_std_path(snapshot_path: Path, subset: str) -> Path:
+    """Locate a subset's standardized JSONL in either repo layout:
+    ADP v1 (neulab/agent-data-collection): {subset}/full_std.jsonl
+    ADP v2 (neulab/adp-v2):                {subset}/raw/full_std.jsonl
+    """
+    v1 = snapshot_path / subset / "full_std.jsonl"
+    if v1.exists():
+        return v1
+    return snapshot_path / subset / "raw" / "full_std.jsonl"
+
+
 def discover_subsets(snapshot_path: Path) -> list[str]:
     subsets = []
     for entry in sorted(snapshot_path.iterdir()):
-        if entry.is_dir() and (entry / "full_std.jsonl").exists():
+        if entry.is_dir() and subset_std_path(snapshot_path, entry.name).exists():
             subsets.append(entry.name)
     return subsets
 
@@ -218,6 +233,98 @@ def web_observation_text(item: dict[str, Any]) -> str:
     return ""
 
 
+def convert_record_atif(
+    record: dict[str, Any],
+    *,
+    dataset: str,
+    index: int,
+    max_content_chars: int,
+) -> dict[str, Any] | None:
+    """Convert one ADP v2 (neulab/adp-v2, schema ATIF-v1.x) standardized record.
+
+    v2 records are ``{schema_version, session_id, trajectory_id, agent, steps, extra}``
+    where each step is ``{step_id, source in {system,user,agent}, message,
+    [tool_calls], [observation]}``. A tool-calling agent step carries
+    ``tool_calls: [{tool_call_id, function_name, arguments, ...}]`` and, on the SAME
+    step, ``observation: {"results": [{source_call_id, content}]}``. Multi-call steps
+    are preserved as one action message with several tool_calls; the observation is
+    rendered as ``"<function_name>: <content>"`` blocks joined by blank lines, matching
+    the enterprise trajectories' last_tool_output convention.
+    """
+    steps = record.get("steps")
+    if not isinstance(steps, list) or not steps:
+        return None
+
+    body: list[dict[str, Any]] = []
+    system_prompt: str | None = None
+    action_count = 0
+
+    for step in steps:
+        if not isinstance(step, dict):
+            continue
+        source = step.get("source")
+        message = str(step.get("message") or "").strip()
+        if source == "system":
+            system_prompt = message if system_prompt is None else join_nonempty(system_prompt, message)
+            continue
+        if source == "user":
+            if message:
+                body.append({"role": "user", "content": truncate(message, max_content_chars)})
+            continue
+        # source == "agent"
+        calls = step.get("tool_calls")
+        if isinstance(calls, list) and calls:
+            if message:
+                body.append({"role": "assistant", "content": truncate(message, max_content_chars)})
+            call_names: dict[str, str] = {}
+            tool_calls = []
+            for call in calls:
+                if not isinstance(call, dict):
+                    continue
+                name = str(call.get("function_name") or "").strip()
+                arguments = call.get("arguments") if isinstance(call.get("arguments"), dict) else {}
+                if not name:
+                    continue
+                call_names[str(call.get("tool_call_id") or "")] = name
+                tool_calls.append({"type": "function", "function": {"name": name, "arguments": arguments}})
+            if not tool_calls:
+                continue
+            body.append({"role": "action", "content": {"tool_calls": tool_calls}})
+            action_count += 1
+            observation = step.get("observation")
+            results = observation.get("results") if isinstance(observation, dict) else None
+            if isinstance(results, list) and results:
+                blocks = []
+                for result in results:
+                    if not isinstance(result, dict):
+                        continue
+                    name = call_names.get(str(result.get("source_call_id") or ""), "tool")
+                    content = str(result.get("content") or "").strip()
+                    if content:
+                        blocks.append(f"{name}: {content}")
+                if blocks:
+                    body.append(make_state_message(truncate("\n\n".join(blocks), max_content_chars)))
+        elif message:
+            body.append({"role": "assistant", "content": truncate(message, max_content_chars)})
+
+    has_user = any(m["role"] == "user" for m in body)
+    has_agent = any(m["role"] in ("assistant", "action") for m in body)
+    if not (has_user and has_agent):
+        return None
+
+    trajectory_id = record.get("trajectory_id") or record.get("session_id") or f"{dataset}-{index}"
+    return {
+        "trajectory_id": str(trajectory_id),
+        "source": f"adp_v2:{dataset}",
+        "domain": dataset,
+        "dataset": dataset,
+        "split": "all",
+        "action_count": action_count,
+        "available_apis": None,
+        "messages": [{"role": "system", "content": system_prompt or system_prompt_for(dataset)}] + body,
+    }
+
+
 def convert_record(
     record: dict[str, Any],
     *,
@@ -225,6 +332,8 @@ def convert_record(
     index: int,
     max_content_chars: int,
 ) -> dict[str, Any] | None:
+    if str(record.get("schema_version") or "").startswith("ATIF") and isinstance(record.get("steps"), list):
+        return convert_record_atif(record, dataset=dataset, index=index, max_content_chars=max_content_chars)
     content = record.get("content")
     if not isinstance(content, list) or not content:
         return None
@@ -332,7 +441,7 @@ def generate_for_subset(
     limit: int | None,
     max_content_chars: int,
 ) -> dict[str, Any]:
-    src = snapshot_path / subset / "full_std.jsonl"
+    src = subset_std_path(snapshot_path, subset)
     out = output_dir / f"{subset}_world_model_trajectories.json"
     out.parent.mkdir(parents=True, exist_ok=True)
 

@@ -247,26 +247,24 @@ def load_seed_lookup(seeds_path: Path) -> tuple[dict[str, dict[str, Any]], int]:
     return task_lookup, max_task_index
 
 
-def request_metadata_from_text(text: Any) -> dict[str, Any] | None:
-    if not isinstance(text, str):
-        return None
-    try:
-        parsed = json.loads(text)
-    except json.JSONDecodeError:
-        task_id = extract_task_id_from_text(text)
-        return {"task_id": task_id} if task_id else None
-    return parsed if isinstance(parsed, dict) else None
-
-
 def extract_request_metadata(events: list[dict[str, Any]]) -> dict[str, Any]:
     for event in events:
         if event.get("event_type") != "Message":
             continue
         payload = event.get("payload") or {}
         for part in payload.get("parts") or []:
-            metadata = request_metadata_from_text(part.get("text"))
-            if metadata is not None:
-                return metadata
+            text = part.get("text")
+            if not isinstance(text, str):
+                continue
+            try:
+                parsed = json.loads(text)
+            except json.JSONDecodeError:
+                task_id = extract_task_id_from_text(text)
+                if task_id:
+                    return {"task_id": task_id}
+                continue
+            if isinstance(parsed, dict):
+                return parsed
     return {}
 
 
@@ -360,85 +358,6 @@ def reconstruct_trajectory(
     return cleanup_world_model_trajectory(trajectory)
 
 
-def skipped_record(
-    source_path: Path,
-    task_id: str,
-    seed_metadata: dict[str, Any],
-    reason: str,
-) -> dict[str, Any]:
-    return {
-        "source_path": str(source_path),
-        "task_id": task_id,
-        "seed_id": seed_metadata["seed_id"],
-        "reason": reason,
-    }
-
-
-def convert_source_file(
-    *,
-    source_path: Path,
-    source_variant: str,
-    seed_lookup: dict[str, dict[str, Any]],
-    synthetic_task_indices: dict[str, int],
-    next_synthetic_task_index: list[int],
-    state_converter: StateConverter,
-) -> tuple[dict[str, Any] | None, dict[str, Any] | None, bool]:
-    events = load_jsonl_records(source_path)
-    request_metadata = extract_request_metadata(events)
-    task_id = request_metadata.get("task_id") or source_path.stem
-    domain = request_metadata.get("domain")
-    seed_metadata = normalize_seed_metadata(
-        seed_lookup=seed_lookup,
-        synthetic_task_indices=synthetic_task_indices,
-        next_synthetic_task_index=next_synthetic_task_index,
-        task_id=task_id,
-        domain=domain,
-    )
-
-    purple_record = extract_purple_internal_record(events)
-    if purple_record is None:
-        return (
-            None,
-            skipped_record(source_path, task_id, seed_metadata, "missing PurpleInternalRecord"),
-            task_id in seed_lookup,
-        )
-
-    conversation_flow = purple_record.get("conversation_flow") or []
-    if not conversation_flow:
-        return (
-            None,
-            skipped_record(source_path, task_id, seed_metadata, "missing conversation_flow"),
-            task_id in seed_lookup,
-        )
-
-    if not seed_metadata.get("domain"):
-        seed_metadata["domain"] = domain or "unknown"
-
-    try:
-        trajectory = reconstruct_trajectory(
-            source_path=source_path,
-            source_variant=source_variant,
-            seed_metadata=seed_metadata,
-            conversation_flow=conversation_flow,
-            state_converter=state_converter,
-        )
-    except Exception as exc:
-        return (
-            None,
-            skipped_record(source_path, task_id, seed_metadata, str(exc)),
-            task_id in seed_lookup,
-        )
-
-    return trajectory, None, task_id in seed_lookup
-
-
-def source_jsonl_files(source_dir: Path) -> list[Path]:
-    source_files = sorted(path for path in source_dir.glob("*.jsonl") if path.is_file())
-    if not source_files:
-        raise ValueError(f"No JSONL trajectory files found under {source_dir}")
-    return source_files
-
-
 def main() -> None:
     args = parse_args()
     source_dir = args.source_dir.resolve()
@@ -449,28 +368,80 @@ def main() -> None:
     synthetic_task_indices: dict[str, int] = {}
     next_synthetic_task_index = [max_seed_task_index + 1]
 
+    source_files = sorted(path for path in source_dir.glob("*.jsonl") if path.is_file())
+    if not source_files:
+        raise ValueError(f"No JSONL trajectory files found under {source_dir}")
+
     trajectories: list[dict[str, Any]] = []
     skipped_records: list[dict[str, Any]] = []
     matched_seed_records = 0
     synthetic_seed_records = 0
 
-    for source_path in source_jsonl_files(source_dir):
-        trajectory, skipped, matched_seed = convert_source_file(
-            source_path=source_path,
-            source_variant=source_variant,
+    for source_path in source_files:
+        events = load_jsonl_records(source_path)
+        request_metadata = extract_request_metadata(events)
+        task_id = request_metadata.get("task_id") or source_path.stem
+        purple_record = extract_purple_internal_record(events)
+        domain = request_metadata.get("domain")
+
+        seed_metadata = normalize_seed_metadata(
             seed_lookup=seed_lookup,
             synthetic_task_indices=synthetic_task_indices,
             next_synthetic_task_index=next_synthetic_task_index,
-            state_converter=state_converter,
+            task_id=task_id,
+            domain=domain,
         )
-        if matched_seed:
+        if task_id in seed_lookup:
             matched_seed_records += 1
         else:
             synthetic_seed_records += 1
-        if skipped is not None:
-            skipped_records.append(skipped)
-        if trajectory is not None:
-            trajectories.append(trajectory)
+
+        if purple_record is None:
+            skipped_records.append(
+                {
+                    "source_path": str(source_path),
+                    "task_id": task_id,
+                    "seed_id": seed_metadata["seed_id"],
+                    "reason": "missing PurpleInternalRecord",
+                }
+            )
+            continue
+
+        conversation_flow = purple_record.get("conversation_flow") or []
+        if not conversation_flow:
+            skipped_records.append(
+                {
+                    "source_path": str(source_path),
+                    "task_id": task_id,
+                    "seed_id": seed_metadata["seed_id"],
+                    "reason": "missing conversation_flow",
+                }
+            )
+            continue
+
+        if not seed_metadata.get("domain"):
+            seed_metadata["domain"] = domain or "unknown"
+
+        try:
+            trajectory = reconstruct_trajectory(
+                source_path=source_path,
+                source_variant=source_variant,
+                seed_metadata=seed_metadata,
+                conversation_flow=conversation_flow,
+                state_converter=state_converter,
+            )
+        except Exception as exc:
+            skipped_records.append(
+                {
+                    "source_path": str(source_path),
+                    "task_id": task_id,
+                    "seed_id": seed_metadata["seed_id"],
+                    "reason": str(exc),
+                }
+            )
+            continue
+
+        trajectories.append(trajectory)
 
     if args.strict and skipped_records:
         preview = "\n".join(item["source_path"] for item in skipped_records[:10])

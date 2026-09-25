@@ -38,7 +38,7 @@ from src.data_preparation.world_model_trajectory_cleanup import cleanup_world_mo
 DEFAULT_SEEDS_PATH = ROOT / "trajectories" / "imported_benchmark_seeds.jsonl"
 DEFAULT_SOURCE_ROOT = Path("/data/user/enterprisegym/results/react/gpt-5/teams/oracle/run_1")
 DEFAULT_QWEN3_SOURCE_ROOT = Path("/data/user/enterprisegym/results/react/qwen3/teams/oracle/run_1")
-DEFAULT_EXTRA_SOURCE_ROOT = Path("/data/Trajectory/user_enterpriseops_gym")
+DEFAULT_USER_SOURCE_ROOT = Path("/data/Trajectory/user_enterpriseops_gym")
 DEFAULT_EXISTING_TRAJECTORY_PATH = (
     ROOT / "trajectories" / "enterpriseops_gym_world_model_mcp_react_trajectories.json"
 )
@@ -50,7 +50,6 @@ DEFAULT_STAGE_CACHE = ROOT / "trajectories" / "enterpriseops_gym_world_model_sta
 TRAJECTORY_STAGE_PLAN_SCHEMA = {
     "stage_labels": [""],
 }
-DEFAULT_ACTIVE_STAGE = "Complete the active step"
 SEMANTIC_STAGNATION_JUDGE_SCHEMA = {
     "semantic_stagnation": False,
     "reason": "",
@@ -198,7 +197,7 @@ def resolve_source_roots(raw_source_roots: list[Path] | None) -> list[Path]:
     source_roots = raw_source_roots or [
         DEFAULT_SOURCE_ROOT,
         DEFAULT_QWEN3_SOURCE_ROOT,
-        DEFAULT_EXTRA_SOURCE_ROOT,
+        DEFAULT_USER_SOURCE_ROOT,
     ]
     resolved_roots = []
     seen = set()
@@ -938,7 +937,7 @@ def summarize_tool_call_for_stage(tool_call: dict, *, limit: int = 120) -> str:
     arguments = parse_tool_arguments(function.get("arguments"))
     targets = extract_stage_targets(arguments)
     if not targets:
-        return summarize_text(tool_name, limit=limit) or DEFAULT_ACTIVE_STAGE
+        return summarize_text(tool_name, limit=limit) or "Complete the active step"
     return summarize_text(f"{tool_name}: {', '.join(targets)}", limit=limit) or tool_name
 
 
@@ -946,7 +945,7 @@ def ensure_distinct_adjacent_stage_labels(stage_labels: list[str]) -> list[str]:
     distinct_labels = []
     total_steps = len(stage_labels)
     for index, label in enumerate(stage_labels, start=1):
-        normalized = summarize_text(label, limit=120) or DEFAULT_ACTIVE_STAGE
+        normalized = summarize_text(label, limit=120) or "Complete the active step"
         if distinct_labels and normalized == distinct_labels[-1]:
             normalized = summarize_text(f"{normalized} ({index}/{total_steps})", limit=120)
         distinct_labels.append(normalized)
@@ -974,7 +973,7 @@ def build_stage_labels(action_batches: list[dict]) -> list[str]:
                 action_content,
                 limit=120,
             )
-        labels.append(label or DEFAULT_ACTIVE_STAGE)
+        labels.append(label or "Complete the active step")
     return ensure_distinct_adjacent_stage_labels(labels)
 
 
@@ -1107,7 +1106,7 @@ def build_planned_state_message(
 ):
     explicit_tool_error = action_uses_tool(action_content) and tool_context_has_explicit_error(latest_tool_context)
     semantic_stagnation = action_uses_tool(action_content) and bool(latest_tool_context.get("semantic_stagnation"))
-    current_label = stage_labels[step_index - 1] if stage_labels else DEFAULT_ACTIVE_STAGE
+    current_label = stage_labels[step_index - 1] if stage_labels else "Complete the active step"
 
     if explicit_tool_error or semantic_stagnation:
         process_state = {

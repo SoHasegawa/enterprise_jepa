@@ -11,12 +11,6 @@ import pandas as pd
 import ollama
 import anthropic
 
-try:
-    from dotenv import load_dotenv
-    load_dotenv()
-except Exception:
-    pass
-
 from io import BytesIO
 from PIL import Image
 from ollama import chat, Client
@@ -26,18 +20,11 @@ from openai import OpenAI
 from transformers import AutoModelForCausalLM, AutoTokenizer
 
 
-APPLICATION_JSON_CONTENT_TYPE = "application/json"
-GPT_5_1_MODEL_NAME = "gpt-5.1"
-GPT_5_1_METHODS = {"gpt5.1", GPT_5_1_MODEL_NAME}
-PYTHON_CODE_FENCE = "```python"
-THINK_END_TAG = "</think>"
-
-
 def _openai_reasoning_effort_for_model(model: str) -> str | None:
     configured = os.environ.get("OPENAI_REASONING_EFFORT")
     if configured:
         return configured
-    if model.lower().startswith(GPT_5_1_MODEL_NAME):
+    if model.lower().startswith("gpt-5.1"):
         return "none"
     return None
 
@@ -46,8 +33,8 @@ def _strip_model_thinking_output(text: str) -> str:
     cleaned = (text or "").strip()
     if not cleaned:
         return ""
-    if THINK_END_TAG in cleaned:
-        cleaned = cleaned.split(THINK_END_TAG, 1)[-1]
+    if "</think>" in cleaned:
+        cleaned = cleaned.split("</think>", 1)[-1]
     cleaned = re.sub(r"<think>.*?</think>\s*", "", cleaned, flags=re.DOTALL | re.IGNORECASE)
     cleaned = re.sub(
         r"<\|channel>thought\s*.*?<channel\|>\s*",
@@ -59,10 +46,9 @@ def _strip_model_thinking_output(text: str) -> str:
 
 
 class LLM:
-    def __init__(self, method="llama", multimodal=False, vllm_server_port=None):
+    def __init__(self, method="llama", multimodal=False):
         self.method = method
         self.ollama = False
-        self.vllm_server_port = vllm_server_port
         if "/" in method:
             if multimodal:
                 self.model, self.text_tokenizer = self._qwen_vl_initialize(method)
@@ -72,10 +58,16 @@ class LLM:
                 self.model = method.split("/")[1]
                 self.client.pull(self.model)
                 self.ollama = True
-            elif method.split("/")[0] == "vllm":
-                port = int(vllm_server_port or os.environ.get("VLLM_SERVER_PORT", 9000))
-                self.vllm_endpoint = f"http://127.0.0.1:{port}/v1/chat/completions"
-                self.vllm_model = method.split("/")[1]
+            elif method.split("/")[0].split(":")[0] == "vllm":
+                # `vllm/<model>`             -> port 9000 (default) or $VLLM_ENDPOINT
+                # `vllm:<port>/<model>`      -> that port on 127.0.0.1
+                # $VLLM_ENDPOINT overrides both (full chat/completions URL).
+                prefix, self.vllm_model = method.split("/", 1)
+                port = prefix.split(":", 1)[1] if ":" in prefix else "9000"
+                self.vllm_endpoint = os.environ.get(
+                    "VLLM_ENDPOINT",
+                    f"http://127.0.0.1:{port}/v1/chat/completions",
+                )
                 self.vllm_api_key = os.environ.get("VLLM_API_KEY")
                 self.method = "vllm"
             else:
@@ -85,12 +77,12 @@ class LLM:
         else:
             self.api_key = os.environ.get("AZURE_OPENAI_API_KEY")
             self.gpt4_endpoint = os.environ.get("AZURE_OPENAI_ENDPOINT")
-            self.client = None
+            self.client = OpenAI()
             # self.gpt4_mini_endpoint = os.environ.get("AZURE_OPENAI_MINI_ENDPOINT")
             self.gemini_endpoint = os.environ.get("GEMINI_ENDPOINT")
             self.gpt5_endpoint = os.environ.get("GPT5_ENDPOINT")
             self.gpt5_mini_endpoint = os.environ.get("GPT5_MINI_ENDPOINT")
-            self.gpt51_model = os.environ.get("GPT51_MODEL", GPT_5_1_MODEL_NAME)
+            self.gpt51_model = os.environ.get("GPT51_MODEL", "gpt-5.1")
             self.vllm_api_key = os.environ.get("VLLM_API_KEY")
             self.qwen3_vllm_endpoint_9000 = os.environ.get(
                 "QWEN3_VLLM_ENDPOINT_9000",
@@ -279,13 +271,13 @@ class LLM:
     @staticmethod
     def _wrap_code(response):
         try:
-            if response.startswith(PYTHON_CODE_FENCE):
-                response = response.lstrip(PYTHON_CODE_FENCE).rstrip("```")
-            elif PYTHON_CODE_FENCE in response:
+            if response.startswith("```python"):
+                response = response.lstrip("```python").rstrip("```")
+            elif "```python" in response:
                 pattern = r'^```(?:\w+)?\s*\n(.*?)(?=^```)```'
                 result = re.findall(pattern, response, re.DOTALL | re.MULTILINE)
                 response = result[0]
-                response = response.lstrip(PYTHON_CODE_FENCE).rstrip("```")
+                response = response.lstrip("```python").rstrip("```")
             elif response.startswith("<think>"):
                 pattern = r"<answer>(.*?)</answer>"
                 matches = re.findall(pattern, response)
@@ -516,7 +508,7 @@ class LLM:
     
     def _execute(self, data, index, api_key, endpoint):
         headers = {
-                'Content-type': APPLICATION_JSON_CONTENT_TYPE,
+                'Content-type': 'application/json',
                 'api-key': api_key,
         }
 
@@ -534,8 +526,6 @@ class LLM:
                 response_payload = response.json()
             except Exception as exc:
                 last_error = f"{type(exc).__name__}: {exc}"
-                if self._is_rate_limit_error(exc):
-                    raise RuntimeError(last_error) from exc
                 time.sleep(60)
                 limit_count += 1
                 continue
@@ -669,8 +659,8 @@ class LLM:
 
         response = self.client.chat(model=self.model, messages=messages, options={"temperature": 0.0, "top_p": 0.8, "top_k": 20, "repeat_penalty": 1, "max_tokens": 1500})
         response = response['message']['content']
-        if THINK_END_TAG in response:
-            response = response.split(THINK_END_TAG)[1]
+        if "</think>" in response:
+            response = response.split("</think>")[1]
         if "</response>" in response:
             response = response.split("</response>")[1].replace("  ", "")
 
@@ -698,22 +688,20 @@ class LLM:
             messages.append({"role": "system", "content": system_prompt})
         messages.append({"role": "user", "content": user_content})
 
-        headers = {"Content-type": APPLICATION_JSON_CONTENT_TYPE}
+        headers = {"Content-type": "application/json"}
         if self.vllm_api_key:
             headers["Authorization"] = f"Bearer {self.vllm_api_key}"
 
-        raw_stop_sequences = os.environ.get("VLLM_STOP_SEQUENCES")
-        stop_sequences = (
-            [item for item in raw_stop_sequences.split("||") if item]
-            if raw_stop_sequences
-            else ["<end_of_turn>", "<|im_end|>", "</s>"]
-        )
+        # `max_tokens` is a hard latency knob, not just a safety cap: single-stream decode on a
+        # 9B-class model runs ~20-25 ms/token, so an unbounded 2000-token budget lets one
+        # rambling reply cost tens of seconds. Callers that know their output size (the agent
+        # generators pass their --max-new-tokens) set `vllm_max_tokens`; 2000 stays the default
+        # for direct LLM(...) users.
         body = {
             "model": model,
             "messages": messages,
-            "max_tokens": 2000,
+            "max_tokens": int(getattr(self, "vllm_max_tokens", 0) or 2000),
             "temperature": temperature,
-            "stop": stop_sequences,
         }
 
         generated_text = None
@@ -727,10 +715,6 @@ class LLM:
             ).json()
             if response.get("choices") is not None:
                 generated_text = response["choices"][0]["message"]["content"]
-                if isinstance(generated_text, str):
-                    for stop_sequence in stop_sequences:
-                        generated_text = generated_text.split(stop_sequence, 1)[0]
-                    generated_text = generated_text.strip()
             else:
                 time.sleep(5)
                 limit_count += 1
@@ -797,8 +781,6 @@ class LLM:
         return output
     
     def _generate_gpt4(self, prompt, system_prompt, image_paths=None, temperature=0.0, endpoint=None):
-        if self.client is None:
-            self.client = OpenAI()
         system_data = [{"type": "text", "text": system_prompt}]
         data = [{"type": "text", "text": prompt}]
         if image_paths is not None:
@@ -871,8 +853,6 @@ class LLM:
         return output
 
     def _generate_openai_chat(self, prompt, system_prompt=None, image_paths=None, temperature=0.0, model=None):
-        if self.client is None:
-            self.client = OpenAI()
         data = [{"type": "text", "text": prompt}]
         if image_paths is not None:
             if len(image_paths) > 50:
@@ -920,12 +900,6 @@ class LLM:
                         f"{request_kwargs['model']} rate limit did not clear after {max_attempts} retries."
                     ) from exc
                 self._wait_for_rate_limit(exc, request_kwargs["model"], attempt)
-
-    @staticmethod
-    def _normalize_env_value(value):
-        if value is None:
-            return None
-        return str(value).strip().strip("\"'")
 
     def _generate_claude(self, prompt, image_paths=None, temperature=0.0, endpoint=None):
         data = [{"type": "text", "text": prompt}]
@@ -1004,12 +978,12 @@ class LLM:
         elif self.method == "gpt4":
             generated_text = self._generate_gpt4(prompt, system_prompt, image_paths=image_paths, temperature=temperature, endpoint=self.gpt4_endpoint)
         elif self.method == "gpt4-mini":
-            generated_text = self._generate_gpt4(prompt, system_prompt, image_paths=image_paths, temperature=temperature, endpoint=self.gpt4_mini_endpoint)
+            generated_text = self._generate_gpt4(prompt, image_paths=image_paths, temperature=temperature, endpoint=self.gpt4_mini_endpoint)
         elif self.method == "gpt5":
             generated_text = self._generate_gpt5(prompt, image_paths=image_paths, temperature=temperature, endpoint=self.gpt5_endpoint)
         elif self.method == "gpt5-mini":
             generated_text = self._generate_gpt5(prompt, image_paths=image_paths, temperature=temperature, endpoint=self.gpt5_mini_endpoint)
-        elif self.method in GPT_5_1_METHODS:
+        elif self.method in {"gpt5.1", "gpt-5.1"}:
             generated_text = self._generate_openai_chat(prompt, system_prompt=system_prompt, image_paths=image_paths, temperature=temperature, model=self.gpt51_model)
         elif self.method == "qwen3-vllm-9000":
             generated_text = self._generate_qwen3_vllm_9000(prompt, system_prompt=system_prompt, image_paths=image_paths, temperature=temperature)
@@ -1041,12 +1015,12 @@ class LLM:
         elif self.method == "gpt4":
             generated_text = self._generate_gpt4(prompt, system_prompt, image_paths=image_paths, temperature=temperature, endpoint=self.gpt4_endpoint)
         elif self.method == "gpt4-mini":
-            generated_text = self._generate_gpt4(prompt, system_prompt, image_paths=image_paths, temperature=temperature, endpoint=self.gpt4_mini_endpoint)
+            generated_text = self._generate_gpt4(prompt, image_paths=image_paths, temperature=temperature, endpoint=self.gpt4_mini_endpoint)
         elif self.method == "gpt5":
             generated_text = self._generate_gpt5(prompt, image_paths=image_paths, temperature=temperature, endpoint=self.gpt5_endpoint)
         elif self.method == "gpt5-mini":
             generated_text = self._generate_gpt5(prompt, image_paths=image_paths, temperature=temperature, endpoint=self.gpt5_mini_endpoint)
-        elif self.method in GPT_5_1_METHODS:
+        elif self.method in {"gpt5.1", "gpt-5.1"}:
             generated_text = self._generate_openai_chat(prompt, system_prompt=system_prompt, image_paths=image_paths, temperature=temperature, model=self.gpt51_model)
         elif self.method == "qwen3-vllm-9000":
             generated_text = self._generate_qwen3_vllm_9000(prompt, system_prompt=system_prompt, image_paths=image_paths, temperature=temperature)
@@ -1076,10 +1050,10 @@ class LLM:
 
         return generated_text
     
-    def ensemble(self, prompt, system_prompt="", image_paths=None):
+    def ensemble(self, prompt, image_paths=None):
         results = {}
-        results["gpt4"] = self._wrap_json(self._generate_gpt4(prompt, system_prompt, image_paths=image_paths, endpoint=self.gpt4_endpoint))
-        results["gpt4-mini"] = self._wrap_json(self._generate_gpt4(prompt, system_prompt, image_paths=image_paths, endpoint=self.gpt4_mini_endpoint))
+        results["gpt4"] = self._wrap_json(self._generate_gpt4(prompt, image_paths=image_paths, endpoint=self.gpt4_endpoint))
+        results["gpt4-mini"] = self._wrap_json(self._generate_gpt4(prompt, image_paths=image_paths, endpoint=self.gpt4_mini_endpoint))
         results["gemini"] = self._wrap_json(self._generate_gemini(prompt, image_paths=image_paths, endpoint=self.gemini_endpoint))
         results["gemini-pro"] = self._wrap_json(self._generate_gemini(prompt, image_paths=image_paths, endpoint=self.gemini_pro_endpoint))
 
@@ -1148,7 +1122,7 @@ class ClouseSourcedLLM:
             "max_completion_tokens": 4000,
         }
         headers = {
-            "Content-type": APPLICATION_JSON_CONTENT_TYPE,
+            "Content-type": "application/json",
             "api-key": backend.api_key,
         }
         response = requests.post(backend.gpt5_endpoint, headers=headers, json=body, timeout=300)
@@ -1201,7 +1175,7 @@ class ClouseSourcedLLM:
             "presence_penalty": 1.0,
         }
         headers = {
-            "Content-type": APPLICATION_JSON_CONTENT_TYPE,
+            "Content-type": "application/json",
             "api-key": backend.api_key,
         }
         response = requests.post(backend.gemini_endpoint, headers=headers, json=body, timeout=300)

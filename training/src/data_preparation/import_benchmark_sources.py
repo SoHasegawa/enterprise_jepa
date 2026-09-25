@@ -27,7 +27,6 @@ DEFAULT_TOUCAN_PATH = (
 DEFAULT_OUTPUT_JSONL = ROOT / "trajectories" / "imported_benchmark_seeds.jsonl"
 DEFAULT_PILOT_OUTPUT_JSONL = ROOT / "trajectories" / "enterpriseops_gym_pilot_seeds.jsonl"
 TOUCAN_CONFIDENCE_RANK = {"high": 3, "medium": 2, "low": 1}
-TEAM_CONTACT_ROLE_NAME = "Team Contact"
 
 NORMALIZATION_VERSION = "v1"
 PILOT_DOMAIN_TARGETS = {
@@ -508,7 +507,7 @@ AGENT_BLUEPRINTS = {
         ),
         (
             "team_contact",
-            TEAM_CONTACT_ROLE_NAME,
+            "Team Contact",
             "collaborator",
             [
                 "Receive notifications or downstream repository updates once the work is complete.",
@@ -537,7 +536,7 @@ AGENT_BLUEPRINTS = {
         ),
         (
             "team_contact",
-            TEAM_CONTACT_ROLE_NAME,
+            "Team Contact",
             "collaborator",
             [
                 "Receive summaries or notifications once project-state updates are finished.",
@@ -566,7 +565,7 @@ AGENT_BLUEPRINTS = {
         ),
         (
             "team_contact",
-            TEAM_CONTACT_ROLE_NAME,
+            "Team Contact",
             "collaborator",
             [
                 "Receive the operational update after the system work completes.",

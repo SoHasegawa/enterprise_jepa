@@ -8,7 +8,7 @@ For each (action, state) pair extracted by `extract_state_examples`:
     matches `format_tool_execution_result_target(..., include_error_message=True)`,
     so success rows look like `1` and failure rows look like `-1,API Error: ...`.
 
-The output JSON is written to `trajectories/enterpriseops_gym_world_model_action_state_pair_counts.json`
+The output JSON is written to `trajectories/world_model_action_state_pair_counts.json`
 by default and contains both fine-grained action-state counts and an
 action-label rollup.
 """
@@ -33,10 +33,10 @@ from src.finetuning import (  # noqa: E402
 
 
 DEFAULT_INPUTS = [
-    ROOT / "trajectories" / "enterpriseops_gym_multi_model_world_model_train_trajectories.json",
-    ROOT / "trajectories" / "enterpriseops_gym_multi_model_world_model_test_trajectories.json",
+    ROOT / "trajectories" / "world_model_train_trajectories.json",
+    ROOT / "trajectories" / "world_model_test_trajectories.json",
 ]
-DEFAULT_OUTPUT = ROOT / "trajectories" / "enterpriseops_gym_world_model_action_state_pair_counts.json"
+DEFAULT_OUTPUT = ROOT / "trajectories" / "world_model_action_state_pair_counts.json"
 
 
 def parse_args() -> argparse.Namespace:
@@ -48,7 +48,7 @@ def parse_args() -> argparse.Namespace:
         default=None,
         help=(
             "Trajectory JSON path. Repeatable; defaults to "
-            "EnterpriseOps-Gym multi-model train/test trajectories."
+            "world_model_{train,test}_trajectories.json."
         ),
     )
     parser.add_argument(
@@ -141,10 +141,10 @@ def main() -> None:
         "trajectory_count": trajectory_total,
         "pair_count": pair_total,
         "unique_action_state_pairs": len(pair_counter),
-        "unique_actions": len({action for action, _ in pair_counter.keys()}),
+        "unique_actions": len({action for action, _ in pair_counter}),
         "label_distribution": {
             str(label): sum(count for (_, lbl), count in label_counter.items() if lbl == label)
-            for label in sorted({lbl for _, lbl in label_counter.keys()}, reverse=True)
+            for label in sorted({lbl for _, lbl in label_counter}, reverse=True)
         },
         "action_state_counts": [
             {"action": action, "state": state, "count": count}

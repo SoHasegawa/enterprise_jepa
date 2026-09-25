@@ -40,21 +40,17 @@ def dump_json(path: Path, payload: Any) -> None:
         json.dump(payload, handle, indent=2, ensure_ascii=False)
 
 
-def iter_message_tool_calls(message: dict[str, Any]):
-    if message.get("role") != "action":
-        return
-    content = message.get("content")
-    if not isinstance(content, dict):
-        return
-    for tool_call in content.get("tool_calls") or []:
-        if isinstance(tool_call, dict):
-            yield tool_call
-
-
 def iter_tool_calls(trajectories: list[dict[str, Any]]):
     for trajectory in trajectories:
         for message in trajectory.get("messages") or []:
-            yield from iter_message_tool_calls(message)
+            if message.get("role") != "action":
+                continue
+            content = message.get("content")
+            if not isinstance(content, dict):
+                continue
+            for tool_call in content.get("tool_calls") or []:
+                if isinstance(tool_call, dict):
+                    yield tool_call
 
 
 def argument_names(arguments: Any) -> list[str]:

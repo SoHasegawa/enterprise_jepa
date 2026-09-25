@@ -291,72 +291,6 @@ def normalize_dict_list(value: Any) -> list[dict[str, Any]]:
     return [item for item in value if isinstance(item, dict) and not is_empty_value(item)]
 
 
-def merge_enterprise_state_sections(normalized: dict[str, Any], state: dict[str, Any]) -> None:
-    if not isinstance(state, dict):
-        return
-    for key in normalized:
-        if isinstance(state.get(key), dict):
-            normalized[key].update(state[key])
-
-
-def normalize_outcome(outcome: dict[str, Any], context: dict[str, Any]) -> None:
-    if outcome.get("status") not in VALID_OUTCOME_STATUSES:
-        outcome["status"] = status_from_label(context.get("last_tool_execution_result"))
-    if outcome.get("failure_category") not in VALID_FAILURE_CATEGORIES:
-        outcome["failure_category"] = "none" if outcome["status"] == "success" else infer_failure_category(context)
-    if not outcome.get("summary"):
-        outcome["summary"] = summarize_text(context.get("last_tool_output"), 320)
-    outcome["recoverable"] = bool(outcome.get("recoverable", outcome["status"] != "success"))
-
-
-def normalize_objects_artifacts(objects: dict[str, Any]) -> None:
-    objects["objects"] = normalize_dict_list(objects.get("objects"))
-    for key in ("created", "updated", "deleted", "found"):
-        objects[key] = normalize_string_list(objects.get(key))
-
-
-def normalize_process_state(proc: dict[str, Any], process: dict[str, Any], fallback_stage: str | None) -> None:
-    if not proc.get("stage"):
-        proc["stage"] = str(process.get("current_stage") or "")
-    if fallback_stage and str(proc.get("stage") or "").strip().lower() == "finished":
-        proc["stage"] = fallback_stage
-    if not proc.get("remaining_requirements"):
-        proc["remaining_requirements"] = normalize_string_list(process.get("remaining_stages"))
-    for key in ("completed_requirements", "remaining_requirements", "blockers"):
-        proc[key] = normalize_string_list(proc.get(key))
-    if fallback_stage and not proc["remaining_requirements"]:
-        proc["remaining_requirements"] = [fallback_stage]
-
-
-def normalize_relational_state(relational: dict[str, Any]) -> None:
-    for key in ("permissions", "dependencies", "assignments", "communication_links"):
-        relational[key] = normalize_dict_list(relational.get(key))
-
-
-def normalize_constraints(constraints: dict[str, Any]) -> None:
-    for key in ("satisfied", "violated", "active_constraints"):
-        constraints[key] = normalize_string_list(constraints.get(key))
-    for key in ("access_control", "sla"):
-        constraints[key] = normalize_dict_list(constraints.get(key))
-
-
-def normalize_history_context(history: dict[str, Any], context: dict[str, Any], status: str) -> None:
-    for key in ("salient_facts", "prior_decisions", "unresolved_assumptions"):
-        history[key] = normalize_string_list(history.get(key))
-    history["last_tool_events"] = normalize_dict_list(history.get("last_tool_events"))
-    if history["last_tool_events"]:
-        return
-    history["last_tool_events"] = [
-        {
-            "tool_name": str(context.get("last_tool_name") or ""),
-            "status": status,
-            "operation": "",
-            "summary": summarize_text(context.get("last_tool_output"), 240),
-            "error": str(context.get("error_message") or "") if status != "success" else "",
-        }
-    ]
-
-
 def is_failed_final_step(context: dict[str, Any], process: dict[str, Any]) -> bool:
     return (
         status_from_label(context.get("last_tool_execution_result")) != "success"
@@ -395,16 +329,61 @@ def normalize_enterprise_state(
     fallback_stage: str | None = None,
 ) -> dict[str, Any]:
     normalized = copy.deepcopy(ENTERPRISE_STATE_SCHEMA)
-    merge_enterprise_state_sections(normalized, state)
+    if isinstance(state, dict):
+        for key in normalized:
+            if isinstance(state.get(key), dict):
+                normalized[key].update(state[key])
 
     outcome = normalized["outcome"]
-    normalize_outcome(outcome, context)
+    if outcome.get("status") not in VALID_OUTCOME_STATUSES:
+        outcome["status"] = status_from_label(context.get("last_tool_execution_result"))
+    if outcome.get("failure_category") not in VALID_FAILURE_CATEGORIES:
+        outcome["failure_category"] = "none" if outcome["status"] == "success" else infer_failure_category(context)
+    if not outcome.get("summary"):
+        outcome["summary"] = summarize_text(context.get("last_tool_output"), 320)
+    outcome["recoverable"] = bool(outcome.get("recoverable", outcome["status"] != "success"))
 
-    normalize_objects_artifacts(normalized["objects_artifacts"])
-    normalize_process_state(normalized["process_state"], process, fallback_stage)
-    normalize_relational_state(normalized["relational_state"])
-    normalize_constraints(normalized["constraints"])
-    normalize_history_context(normalized["history_context"], context, outcome["status"])
+    objects = normalized["objects_artifacts"]
+    objects["objects"] = normalize_dict_list(objects.get("objects"))
+    for key in ("created", "updated", "deleted", "found"):
+        objects[key] = normalize_string_list(objects.get(key))
+
+    proc = normalized["process_state"]
+    if not proc.get("stage"):
+        proc["stage"] = str(process.get("current_stage") or "")
+    if fallback_stage and str(proc.get("stage") or "").strip().lower() == "finished":
+        proc["stage"] = fallback_stage
+    if not proc.get("remaining_requirements"):
+        proc["remaining_requirements"] = normalize_string_list(process.get("remaining_stages"))
+    for key in ("completed_requirements", "remaining_requirements", "blockers"):
+        proc[key] = normalize_string_list(proc.get(key))
+    if fallback_stage and not proc["remaining_requirements"]:
+        proc["remaining_requirements"] = [fallback_stage]
+
+    relational = normalized["relational_state"]
+    for key in ("permissions", "dependencies", "assignments", "communication_links"):
+        relational[key] = normalize_dict_list(relational.get(key))
+
+    constraints = normalized["constraints"]
+    for key in ("satisfied", "violated", "active_constraints"):
+        constraints[key] = normalize_string_list(constraints.get(key))
+    for key in ("access_control", "sla"):
+        constraints[key] = normalize_dict_list(constraints.get(key))
+
+    history = normalized["history_context"]
+    for key in ("salient_facts", "prior_decisions", "unresolved_assumptions"):
+        history[key] = normalize_string_list(history.get(key))
+    history["last_tool_events"] = normalize_dict_list(history.get("last_tool_events"))
+    if not history["last_tool_events"]:
+        history["last_tool_events"] = [
+            {
+                "tool_name": str(context.get("last_tool_name") or ""),
+                "status": outcome["status"],
+                "operation": "",
+                "summary": summarize_text(context.get("last_tool_output"), 240),
+                "error": str(context.get("error_message") or "") if outcome["status"] != "success" else "",
+            }
+        ]
 
     return normalized
 

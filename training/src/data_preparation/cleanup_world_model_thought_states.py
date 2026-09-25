@@ -14,8 +14,8 @@ if str(ROOT) not in sys.path:
 from src.data_preparation.world_model_trajectory_cleanup import cleanup_world_model_trajectory
 
 DEFAULT_PATHS = [
-    ROOT / "trajectories" / "enterpriseops_gym_multi_model_world_model_train_trajectories.json",
-    ROOT / "trajectories" / "enterpriseops_gym_multi_model_world_model_test_trajectories.json",
+    ROOT / "trajectories" / "world_model_train_trajectories.json",
+    ROOT / "trajectories" / "world_model_test_trajectories.json",
 ]
 
 

@@ -17,22 +17,6 @@ DEFAULT_REPLAY_PATH = (
     / "gpt-4o-mini_replay.json"
 )
 
-# Meta-modes mirror `--agent-replay-mode` aliases in src/evaluation.py: passing
-# one to `--mode` expands to its constituent replay modes (intersected with the
-# modes actually present in the file).
-META_MODES: dict[str, list[str]] = {
-    "all": ["baseline", "revision", "imagined"],
-    "all_with_itp": [
-        "baseline",
-        "revision",
-        "imagined",
-        "react_wm",
-        "react_wm_decide_k",
-        "react_wm_rl_k",
-    ],
-    "itp_only": ["react_wm", "react_wm_decide_k", "react_wm_rl_k"],
-}
-
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
@@ -47,11 +31,7 @@ def parse_args() -> argparse.Namespace:
         "--mode",
         action="append",
         default=[],
-        help=(
-            "Only calculate metrics for the specified mode(s), e.g. baseline. "
-            "Meta-modes (all, all_with_itp, itp_only) expand to their "
-            "constituent replay modes present in the file."
-        ),
+        help="Only calculate metrics for the specified mode(s), e.g. baseline.",
     )
     parser.add_argument(
         "--json",
@@ -109,82 +89,132 @@ def count_tools_from_statistics(statistics: dict[str, Any]) -> int:
     return total
 
 
-def add_run_counts(
-    run: dict[str, Any],
-    summary: dict[str, int],
-) -> bool:
-    tools_called = count_tools_for_run(run)
-    if tools_called is not None:
-        summary["total_tools_called"] += tools_called
-        summary["tool_count_runs"] += 1
-
-    steps_taken = count_steps_for_run(run)
-    if steps_taken is not None:
-        summary["total_steps_taken"] += steps_taken
-        summary["step_count_runs"] += 1
-
-    return tools_called is not None
-
-
-def add_statistics_counts(statistics: dict[str, Any], summary: dict[str, int]) -> None:
-    summary["total_runs"] += int(statistics.get("total_runs") or 0)
-    summary["successful_runs"] += int(statistics.get("successful_runs") or 0)
-    summary["total_verifiers_checked"] += int(statistics.get("total_verifiers_checked") or 0)
-    summary["total_verifiers_passed"] += int(statistics.get("total_verifiers_passed") or 0)
-
-
-def add_task_counts(task_record: dict[str, Any], summary: dict[str, int]) -> None:
-    result = task_record.get("result") or {}
-    statistics = result.get("statistics") or {}
-    add_statistics_counts(statistics, summary)
-
-    task_tool_count_runs = 0
-    runs = result.get("runs") or []
-    if isinstance(runs, list):
-        for run in runs:
-            if isinstance(run, dict) and add_run_counts(run, summary):
-                task_tool_count_runs += 1
-
-    if task_tool_count_runs:
-        return
-
-    statistics_tools = count_tools_from_statistics(statistics)
-    if statistics_tools:
-        summary["total_tools_called"] += statistics_tools
-        summary["tool_count_runs"] += int(statistics.get("total_runs") or 1)
-
-
 def summarize_mode(mode_name: str, mode_payload: dict[str, Any]) -> dict[str, Any]:
     task_records = mode_payload.get("task_records") or []
-    counts = {
-        "total_runs": 0,
-        "successful_runs": 0,
-        "total_verifiers_checked": 0,
-        "total_verifiers_passed": 0,
-        "total_tools_called": 0,
-        "tool_count_runs": 0,
-        "total_steps_taken": 0,
-        "step_count_runs": 0,
-    }
+    total_runs = 0
+    successful_runs = 0
+    total_verifiers_checked = 0
+    total_verifiers_passed = 0
+    total_tools_called = 0
+    tool_count_runs = 0
+    total_steps_taken = 0
+    step_count_runs = 0
+    latent_plan_record_count = 0
+    latent_override_applied = 0
+    latent_margin_blocked = 0
+    latent_top_score_spread_total = 0.0
+    latent_top_score_spread_count = 0
+    latent_pool_count = 0
+    latent_pool_unique_tool_total = 0
+    latent_pool_duplicate_total = 0
+    latent_pool_requested_total = 0
+    latent_pool_sampled_total = 0
+    latent_pool_accepted_different_tool_total = 0
+    latent_pool_accepted_same_tool_args_total = 0
+    latent_pool_accepted_other_total = 0
+    latent_pool_accepted_bucket_count = 0
+    latent_next_subgoal_records = 0
+    latent_active_subgoal_records = 0
+    latent_missing_subgoal_skips = 0
 
     for task_record in task_records:
-        add_task_counts(task_record, counts)
+        result = task_record.get("result") or {}
+        statistics = result.get("statistics") or {}
+        total_runs += int(statistics.get("total_runs") or 0)
+        successful_runs += int(statistics.get("successful_runs") or 0)
+        total_verifiers_checked += int(statistics.get("total_verifiers_checked") or 0)
+        total_verifiers_passed += int(statistics.get("total_verifiers_passed") or 0)
 
-    success_rate = counts["successful_runs"] / counts["total_runs"] if counts["total_runs"] else 0.0
+        runs = result.get("runs") or []
+        task_tool_count_runs = 0
+        if isinstance(runs, list):
+            for run in runs:
+                if not isinstance(run, dict):
+                    continue
+                tools_called = count_tools_for_run(run)
+                if tools_called is not None:
+                    total_tools_called += tools_called
+                    tool_count_runs += 1
+                    task_tool_count_runs += 1
+                steps_taken = count_steps_for_run(run)
+                if steps_taken is not None:
+                    total_steps_taken += steps_taken
+                    step_count_runs += 1
+                latent_records = run.get("latent_plan_records") or []
+                if isinstance(latent_records, list):
+                    for latent_record in latent_records:
+                        if not isinstance(latent_record, dict):
+                            continue
+                        latent_plan_record_count += 1
+                        if latent_record.get("override_applied") is True:
+                            latent_override_applied += 1
+                        if latent_record.get("goal_mode") == "next_subgoal":
+                            latent_next_subgoal_records += 1
+                        if isinstance(latent_record.get("active_subgoal"), dict):
+                            latent_active_subgoal_records += 1
+                        if latent_record.get("override_reason") == "score_margin_not_met":
+                            latent_margin_blocked += 1
+                        if latent_record.get("override_reason") == "missing_active_subgoal":
+                            latent_missing_subgoal_skips += 1
+                        spread = latent_record.get("top_score_spread")
+                        if isinstance(spread, (int, float)) and not isinstance(spread, bool):
+                            latent_top_score_spread_total += float(spread)
+                            latent_top_score_spread_count += 1
+                        pools = latent_record.get("candidate_pool_diagnostics") or []
+                        if isinstance(pools, list):
+                            for pool in pools:
+                                if not isinstance(pool, dict):
+                                    continue
+                                latent_pool_count += 1
+                                unique_tools = pool.get("unique_tool_count")
+                                if isinstance(unique_tools, (int, float)) and not isinstance(unique_tools, bool):
+                                    latent_pool_unique_tool_total += int(unique_tools)
+                                duplicates = pool.get("duplicate_candidates")
+                                if isinstance(duplicates, (int, float)) and not isinstance(duplicates, bool):
+                                    latent_pool_duplicate_total += int(duplicates)
+                                requested = pool.get("requested_candidates")
+                                if isinstance(requested, (int, float)) and not isinstance(requested, bool):
+                                    latent_pool_requested_total += int(requested)
+                                sampled = pool.get("sampled_candidates")
+                                if isinstance(sampled, (int, float)) and not isinstance(sampled, bool):
+                                    latent_pool_sampled_total += int(sampled)
+                                accepted_different = pool.get("accepted_different_tool_name")
+                                accepted_same = pool.get("accepted_same_tool_name_different_args")
+                                accepted_other = pool.get("accepted_other")
+                                if (
+                                    isinstance(accepted_different, (int, float))
+                                    and not isinstance(accepted_different, bool)
+                                    and isinstance(accepted_same, (int, float))
+                                    and not isinstance(accepted_same, bool)
+                                    and isinstance(accepted_other, (int, float))
+                                    and not isinstance(accepted_other, bool)
+                                ):
+                                    latent_pool_accepted_bucket_count += 1
+                                    latent_pool_accepted_different_tool_total += int(accepted_different)
+                                    latent_pool_accepted_same_tool_args_total += int(accepted_same)
+                                    latent_pool_accepted_other_total += int(accepted_other)
+
+        if not task_tool_count_runs:
+            statistics_tools = count_tools_from_statistics(statistics)
+            if statistics_tools:
+                total_tools_called += statistics_tools
+                tool_count_runs += int(statistics.get("total_runs") or 1)
+
+    success_rate = successful_runs / total_runs if total_runs else 0.0
     verifier_rate = (
-        counts["total_verifiers_passed"] / counts["total_verifiers_checked"]
-        if counts["total_verifiers_checked"]
+        total_verifiers_passed / total_verifiers_checked
+        if total_verifiers_checked
         else 0.0
     )
-    average_tools_called = (
-        counts["total_tools_called"] / counts["tool_count_runs"]
-        if counts["tool_count_runs"]
+    average_tools_called = total_tools_called / tool_count_runs if tool_count_runs else 0.0
+    average_steps_taken = total_steps_taken / step_count_runs if step_count_runs else 0.0
+    average_latent_top_score_spread = (
+        latent_top_score_spread_total / latent_top_score_spread_count
+        if latent_top_score_spread_count
         else 0.0
     )
-    average_steps_taken = (
-        counts["total_steps_taken"] / counts["step_count_runs"]
-        if counts["step_count_runs"]
-        else 0.0
+    average_latent_pool_unique_tool_count = (
+        latent_pool_unique_tool_total / latent_pool_count if latent_pool_count else 0.0
     )
 
     return {
@@ -192,49 +222,115 @@ def summarize_mode(mode_name: str, mode_payload: dict[str, Any]) -> dict[str, An
         "evaluated_tasks": int(mode_payload.get("evaluated_tasks") or len(task_records)),
         "errored_tasks": int(mode_payload.get("errored_tasks") or 0),
         "task_records": len(task_records),
-        "total_runs": counts["total_runs"],
-        "successful_runs": counts["successful_runs"],
+        "total_runs": total_runs,
+        "successful_runs": successful_runs,
         "success_rate": success_rate,
-        "total_verifiers_checked": counts["total_verifiers_checked"],
-        "total_verifiers_passed": counts["total_verifiers_passed"],
+        "total_verifiers_checked": total_verifiers_checked,
+        "total_verifiers_passed": total_verifiers_passed,
         "verifier_rate": verifier_rate,
-        "tool_count_runs": counts["tool_count_runs"],
-        "total_tools_called": counts["total_tools_called"],
+        "tool_count_runs": tool_count_runs,
+        "total_tools_called": total_tools_called,
         "average_tools_called": average_tools_called,
-        "step_count_runs": counts["step_count_runs"],
-        "total_steps_taken": counts["total_steps_taken"],
+        "step_count_runs": step_count_runs,
+        "total_steps_taken": total_steps_taken,
         "average_steps_taken": average_steps_taken,
+        "latent_plan_records": latent_plan_record_count,
+        "latent_override_applied": latent_override_applied,
+        "latent_margin_blocked": latent_margin_blocked,
+        "latent_top_score_spread_count": latent_top_score_spread_count,
+        "average_latent_top_score_spread": average_latent_top_score_spread,
+        "latent_pool_count": latent_pool_count,
+        "average_latent_pool_unique_tool_count": average_latent_pool_unique_tool_count,
+        "latent_pool_duplicate_candidates": latent_pool_duplicate_total,
+        "latent_pool_requested_candidates": latent_pool_requested_total,
+        "latent_pool_sampled_candidates": latent_pool_sampled_total,
+        "latent_pool_accepted_bucket_count": latent_pool_accepted_bucket_count,
+        "latent_pool_accepted_different_tool_name": latent_pool_accepted_different_tool_total,
+        "latent_pool_accepted_same_tool_name_different_args": latent_pool_accepted_same_tool_args_total,
+        "latent_pool_accepted_other": latent_pool_accepted_other_total,
+        "latent_next_subgoal_records": latent_next_subgoal_records,
+        "latent_active_subgoal_records": latent_active_subgoal_records,
+        "latent_missing_subgoal_skips": latent_missing_subgoal_skips,
     }
 
 
 def format_text(summary: dict[str, Any]) -> str:
-    return "\n".join(
-        [
-            f"[{summary['mode']}]",
-            f"evaluated_tasks: {summary['evaluated_tasks']}",
-            f"errored_tasks: {summary['errored_tasks']}",
-            f"task_records: {summary['task_records']}",
-            f"successful_runs: {summary['successful_runs']}/{summary['total_runs']}",
-            f"success_rate: {summary['success_rate']:.4%}",
-            (
-                "verifiers_passed: "
-                f"{summary['total_verifiers_passed']}/{summary['total_verifiers_checked']}"
-            ),
-            f"verifier_rate: {summary['verifier_rate']:.4%}",
-            (
-                "tools_called: "
-                f"{summary['total_tools_called']} total / "
-                f"{summary['average_tools_called']:.4f} avg per counted run "
-                f"({summary['tool_count_runs']} runs)"
-            ),
-            (
-                "steps_taken: "
-                f"{summary['total_steps_taken']} total / "
-                f"{summary['average_steps_taken']:.4f} avg per counted run "
-                f"({summary['step_count_runs']} runs)"
-            ),
-        ]
-    )
+    lines = [
+        f"[{summary['mode']}]",
+        f"evaluated_tasks: {summary['evaluated_tasks']}",
+        f"errored_tasks: {summary['errored_tasks']}",
+        f"task_records: {summary['task_records']}",
+        f"successful_runs: {summary['successful_runs']}/{summary['total_runs']}",
+        f"success_rate: {summary['success_rate']:.4%}",
+        (
+            "verifiers_passed: "
+            f"{summary['total_verifiers_passed']}/{summary['total_verifiers_checked']}"
+        ),
+        f"verifier_rate: {summary['verifier_rate']:.4%}",
+        (
+            "tools_called: "
+            f"{summary['total_tools_called']} total / "
+            f"{summary['average_tools_called']:.4f} avg per counted run "
+            f"({summary['tool_count_runs']} runs)"
+        ),
+        (
+            "steps_taken: "
+            f"{summary['total_steps_taken']} total / "
+            f"{summary['average_steps_taken']:.4f} avg per counted run "
+            f"({summary['step_count_runs']} runs)"
+        ),
+    ]
+    if summary.get("latent_plan_records"):
+        if not summary.get("latent_top_score_spread_count") and not summary.get("latent_pool_count"):
+            if summary.get("latent_missing_subgoal_skips"):
+                lines.append(
+                    "latent_plans: "
+                    f"{summary['latent_plan_records']} records / "
+                    f"{summary['latent_override_applied']} overrides / "
+                    f"{summary['latent_margin_blocked']} margin-blocked / "
+                    f"{summary['latent_active_subgoal_records']} active subgoals / "
+                    f"{summary['latent_missing_subgoal_skips']} missing-subgoal skips "
+                    "(latent scoring skipped)"
+                )
+            else:
+                lines.append(
+                    f"latent_plans: {summary['latent_plan_records']} records "
+                    "(diagnostics unavailable in this replay file)"
+                )
+        else:
+            lines.extend(
+                [
+                    (
+                        "latent_plans: "
+                        f"{summary['latent_plan_records']} records / "
+                        f"{summary['latent_override_applied']} overrides / "
+                        f"{summary['latent_margin_blocked']} margin-blocked / "
+                        f"{summary['latent_active_subgoal_records']} active subgoals / "
+                        f"{summary['latent_missing_subgoal_skips']} missing-subgoal skips"
+                    ),
+                    (
+                        "latent_score_spread: "
+                        f"{summary['average_latent_top_score_spread']:.6f} avg top-plan spread "
+                        f"({summary['latent_top_score_spread_count']} records)"
+                    ),
+                    (
+                        "latent_pool_diversity: "
+                        f"{summary['average_latent_pool_unique_tool_count']:.4f} avg unique tools per pool / "
+                        f"{summary['latent_pool_duplicate_candidates']} duplicate candidates / "
+                        f"{summary['latent_pool_sampled_candidates']} sampled "
+                        f"from {summary['latent_pool_requested_candidates']} requested"
+                        + (
+                            f" / accepted buckets: "
+                            f"{summary['latent_pool_accepted_different_tool_name']} different-tool, "
+                            f"{summary['latent_pool_accepted_same_tool_name_different_args']} same-tool-diff-args, "
+                            f"{summary['latent_pool_accepted_other']} other"
+                            if summary.get("latent_pool_accepted_bucket_count")
+                            else " / accepted buckets unavailable"
+                        )
+                    ),
+                ]
+            )
+    return "\n".join(lines)
 
 
 def main() -> None:
@@ -248,33 +344,12 @@ def main() -> None:
     if not all_modes:
         raise SystemExit("No replay modes with `task_records` found in the replay file.")
 
-    if args.mode:
-        selected_modes = []
-        missing_modes = []
-        for requested in args.mode:
-            if requested in META_MODES:
-                present = [m for m in META_MODES[requested] if m in all_modes]
-                if not present:
-                    missing_modes.append(requested)
-                selected_modes.extend(present)
-            elif requested in all_modes:
-                selected_modes.append(requested)
-            else:
-                missing_modes.append(requested)
-        # De-duplicate while preserving order (meta-modes may overlap).
-        selected_modes = list(dict.fromkeys(selected_modes))
-    else:
-        selected_modes = list(all_modes)
-        missing_modes = []
-
+    selected_modes = args.mode or list(all_modes)
+    missing_modes = [mode for mode in selected_modes if mode not in all_modes]
     if missing_modes:
         available = ", ".join(sorted(all_modes))
-        meta = ", ".join(sorted(META_MODES))
         missing = ", ".join(missing_modes)
-        raise SystemExit(
-            f"Unknown or empty mode(s): {missing}. "
-            f"Available modes: {available}. Meta-modes: {meta}."
-        )
+        raise SystemExit(f"Unknown mode(s): {missing}. Available modes: {available}.")
 
     summaries = [summarize_mode(mode, all_modes[mode]) for mode in selected_modes]
 

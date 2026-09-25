@@ -187,22 +187,16 @@ def is_scalar(value):
     return isinstance(value, (str, int, float, bool)) or value is None
 
 
-def record_signal(key, value):
-    if is_scalar(value) and (key in INTERESTING_RESULT_KEYS or key.endswith("_id")):
-        return f"{key}={value}"
-    return None
-
-
 def flatten_record_signals(value):
     signals = []
 
     def walk(node):
         if isinstance(node, dict):
             for key, child in node.items():
-                signal = record_signal(key, child)
-                if signal is not None:
-                    signals.append(signal)
-                elif not is_scalar(child):
+                if is_scalar(child):
+                    if key in INTERESTING_RESULT_KEYS or key.endswith("_id"):
+                        signals.append(f"{key}={child}")
+                else:
                     walk(child)
         elif isinstance(node, list):
             for item in node[:8]:
@@ -212,57 +206,42 @@ def flatten_record_signals(value):
     return unique_ordered(signals)
 
 
-def text_chunks_from_payload(payload):
-    if not isinstance(payload, dict):
-        return [], None
-
-    text_chunks = [
-        content_item.get("text")
-        for content_item in payload.get("content") or []
-        if isinstance(content_item.get("text"), str) and content_item.get("text").strip()
-    ]
-    return text_chunks, payload.get("structuredContent")
-
-
-def fallback_error_chunks(error):
-    if not error:
-        return []
-    if isinstance(error, str):
-        return [error]
-    return [json.dumps(error, ensure_ascii=False)]
-
-
-def parse_tool_payload(raw_text, structured_content, payload):
-    parsed_text = try_parse_json(raw_text)
-    parsed_payload = parsed_text if parsed_text is not None else structured_content
-    if parsed_payload is None:
-        return payload if payload else raw_text
-    return parsed_payload
-
-
 def extract_tool_payload(tool_result):
     result_wrapper = tool_result.get("result") or {}
     success = bool(result_wrapper.get("success"))
     error = result_wrapper.get("error")
     payload = result_wrapper.get("result") or {}
 
-    text_chunks, structured_content = text_chunks_from_payload(payload)
+    text_chunks = []
+    if isinstance(payload, dict):
+        for content_item in payload.get("content") or []:
+            text = content_item.get("text")
+            if isinstance(text, str) and text.strip():
+                text_chunks.append(text)
+        structured_content = payload.get("structuredContent")
+    else:
+        structured_content = None
 
     if error and not text_chunks:
-        text_chunks.extend(fallback_error_chunks(error))
+        if isinstance(error, str):
+            text_chunks.append(error)
+        else:
+            text_chunks.append(json.dumps(error, ensure_ascii=False))
 
     raw_text = "\n".join(text_chunks).strip()
     if raw_text and looks_like_error_text(raw_text):
         success = False
-    parsed_payload = parse_tool_payload(raw_text, structured_content, payload)
+    parsed_text = try_parse_json(raw_text)
+    parsed_payload = parsed_text if parsed_text is not None else structured_content
+    if parsed_payload is None:
+        parsed_payload = payload if payload else raw_text
 
     if isinstance(parsed_payload, (dict, list)):
         record_signals = flatten_record_signals(parsed_payload)
     else:
         record_signals = []
 
-    summary_source = record_signals[:8] if record_signals else raw_text or error or payload
-    summary = summarize_text(summary_source, limit=240)
+    summary = summarize_text(record_signals[:8] if record_signals else raw_text or error or payload, limit=240)
     return {
         "success": success,
         "error": error,
@@ -287,27 +266,20 @@ def action_summary(action_content):
     return summarize_text(action_content, limit=180)
 
 
-def build_tool_stage_label(names: list[str]) -> str:
-    if len(names) == 1:
-        return f"Execute {humanize_tool_name(names[0])}"
-    joined = ", ".join(humanize_tool_name(name) for name in names[:3])
-    if len(names) > 3:
-        joined += ", and more"
-    return f"Execute {joined}"
-
-
 def build_stage_labels(action_contents):
     labels = []
     for index, action_content in enumerate(action_contents):
         if isinstance(action_content, dict) and action_content.get("tool_calls"):
             names = [call["function"]["name"] for call in action_content["tool_calls"]]
-            labels.append(build_tool_stage_label(names))
+            if len(names) == 1:
+                labels.append(f"Execute {humanize_tool_name(names[0])}")
+            else:
+                joined = ", ".join(humanize_tool_name(name) for name in names[:3])
+                if len(names) > 3:
+                    joined += ", and more"
+                labels.append(f"Execute {joined}")
         else:
-            label = (
-                "Deliver final response"
-                if index == len(action_contents) - 1
-                else action_summary(action_content)
-            )
+            label = "Deliver final response" if index == len(action_contents) - 1 else action_summary(action_content)
             labels.append(label)
     return labels
 
